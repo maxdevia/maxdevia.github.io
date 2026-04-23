@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#fff; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    min-height:100vh; font-family:Helvetica,sans-serif; color:#222;
+  }
+  #picker {
+    position:fixed; inset:0; background:#fff;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:18px; z-index:10;
+  }
+  #picker h1 { font-size:26px; font-weight:bold; }
+  #picker p  { font-size:13px; color:#aaa; }
+  #heads { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+  .head-btn {
+    font-size:36px; cursor:pointer; padding:8px 10px;
+    border:3px solid transparent; border-radius:12px;
+    background:#f5f5f5; transition:border-color .15s, transform .15s;
+    position:relative; margin-bottom:22px;
+  }
+  .head-btn:hover  { border-color:#ccc; transform:scale(1.1); }
+  .head-btn.active { border-color:#e94560; transform:scale(1.15); }
+  .hs {
+    position:absolute; bottom:-20px; left:50%; transform:translateX(-50%);
+    font-size:10px; color:#e94560; font-weight:bold; white-space:nowrap;
+    font-family:Helvetica,sans-serif;
+  }
+  #start-btn {
+    margin-top:8px; padding:12px 36px; font-size:15px; font-weight:bold;
+    background:#e94560; color:#fff; border:none;
+    border-radius:8px; cursor:pointer;
+  }
+  #start-btn:disabled { background:#ddd; color:#aaa; cursor:default; }
+  #start-btn:not(:disabled):hover { background:#c73050; }
+
+  #game { display:none; flex-direction:column; align-items:center; }
+  #hud {
+    display:flex; justify-content:space-between; align-items:center;
+    width:420px; margin-bottom:6px; font-size:13px; color:#aaa;
+  }
+  #scores { display:flex; gap:16px; align-items:center; }
+  #score-display { font-size:16px; font-weight:bold; color:#222; }
+  #hi-display { font-size:13px; color:#e94560; font-weight:bold; }
+  canvas { display:block; border:2px solid #eee; border-radius:4px; background:#fff; }
+  #hint { margin-top:6px; font-size:11px; color:#ccc; }
+  #legend { margin-top:5px; font-size:11px; color:#bbb; display:flex; gap:14px; }
+</style>
+</head>
+<body>
+
+<div id="picker">
+  <h1>🐍 Choose Your Character</h1>
+  <p>Each character tracks their own high score</p>
+  <div id="heads"></div>
+  <button id="start-btn" disabled>Press Space to Start</button>
+</div>
+
+<div id="game">
+  <div id="hud">
+    <div id="scores">
+      <span id="score-display">Score: 0</span>
+      <span id="hi-display"></span>
+    </div>
+    <span>Space = start/pause/restart &nbsp;•&nbsp; WASD / ↑↓←→</span>
+  </div>
+  <canvas id="c" width="420" height="420"></canvas>
+  <div id="hint">Arrow keys or WASD to move &nbsp;•&nbsp; R = change character</div>
+  <div id="legend">
+    <span>🍎 +10 (always)</span>
+    <span>🍑 +100 (1% chance)</span>
+    <span>🍏 −20 (5% chance)</span>
+  </div>
+</div>
+
+<script>
+const COLS=21, ROWS=21, CELL=20;
+const HEADS=['😍','🤑','👹','👽','💀','🤡','👾','🤖'];
+const BODY='🟩';
+
+const highScores = {};
+HEADS.forEach(h => highScores[h] = 0);
+
+let chosenHead = null;
+
+// --- Picker ---
+const headsDiv = document.getElementById('heads');
+const startBtn = document.getElementById('start-btn');
+
+HEADS.forEach(h => {
+  const btn = document.createElement('button');
+  btn.className = 'head-btn';
+  btn.dataset.head = h;
+  const hs = document.createElement('span');
+  hs.className = 'hs';
+  hs.id = 'hs_' + HEADS.indexOf(h);
+  btn.textContent = h;
+  btn.appendChild(hs);
+  btn.onclick = () => selectHead(h);
+  headsDiv.appendChild(btn);
+});
+
+function selectHead(h) {
+  document.querySelectorAll('.head-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.head-btn[data-head="${h}"]`).classList.add('active');
+  chosenHead = h;
+  startBtn.disabled = false;
+  updatePickerScores();
+}
+
+function updatePickerScores() {
+  HEADS.forEach((h, i) => {
+    const el = document.getElementById('hs_' + i);
+    if (el) el.textContent = highScores[h] > 0 ? '🏆 ' + highScores[h] : '';
+  });
+}
+
+startBtn.onclick = () => launchGame();
+
+document.addEventListener('keydown', e => {
+  const pickerVisible = document.getElementById('picker').style.display !== 'none';
+  if (e.key === ' ') {
+    e.preventDefault();
+    if (pickerVisible) { if (chosenHead) launchGame(); }
+    else handleSpace();
+  }
+  if (!pickerVisible) {
+    const d = KEY_MAP[e.key];
+    if (d) { e.preventDefault(); if (state==='running' && d!==OPP[dir]) nextDir=d; }
+    if (e.key==='p'||e.key==='P') handleSpace();
+    if (e.key==='r'||e.key==='R') showPicker();
+  }
+});
+
+function launchGame() {
+  document.getElementById('picker').style.display = 'none';
+  document.getElementById('game').style.display = 'flex';
+  init();
+  draw();
+}
+
+function showPicker() {
+  if (loopId) clearInterval(loopId);
+  document.getElementById('picker').style.display = 'flex';
+  document.getElementById('game').style.display = 'none';
+  updatePickerScores();
+  // re-highlight current character
+  if (chosenHead) selectHead(chosenHead);
+}
+
+// --- Game ---
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score-display');
+const hiEl    = document.getElementById('hi-display');
+
+const DIR = { UP:{x:0,y:-1}, DOWN:{x:0,y:1}, LEFT:{x:-1,y:0}, RIGHT:{x:1,y:0} };
+const OPP = { UP:'DOWN', DOWN:'UP', LEFT:'RIGHT', RIGHT:'LEFT' };
+const KEY_MAP = {
+  ArrowUp:'UP', ArrowDown:'DOWN', ArrowLeft:'LEFT', ArrowRight:'RIGHT',
+  w:'UP', s:'DOWN', a:'LEFT', d:'RIGHT',
+  W:'UP', S:'DOWN', A:'LEFT', D:'RIGHT',
+};
+
+let snake, dir, nextDir, foods, score, state, loopId;
+
+function foodEmoji(t)  { return t==='red'?'🍎':t==='peach'?'🍑':'🍏'; }
+function foodPoints(t) { return t==='red'?10:t==='peach'?100:-20; }
+
+// Returns the special food type to spawn this tick, or null
+function rollSpecial() {
+  const r = Math.random();
+  if (r < 0.01) return 'peach';
+  if (r < 0.06) return 'green';
+  return null;
+}
+
+function emptyCell(exclude) {
+  const occ = new Set(snake.map(s=>`${s.x},${s.y}`));
+  foods.forEach(f => occ.add(`${f.x},${f.y}`));
+  if (exclude) exclude.forEach(p => occ.add(`${p.x},${p.y}`));
+  const cands = [];
+  for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++)
+    if (!occ.has(`${x},${y}`)) cands.push({x,y});
+  return cands.length ? cands[Math.floor(Math.random()*cands.length)] : null;
+}
+
+function spawnFood() {
+  // Always spawn one red apple
+  const redPos = emptyCell();
+  if (!redPos) return;
+  const toAdd = [{...redPos, type:'red'}];
+
+  // Roll for a special — if hit, spawn it alongside the red apple
+  const special = rollSpecial();
+  if (special) {
+    const specialPos = emptyCell(toAdd);
+    if (specialPos) toAdd.push({...specialPos, type: special});
+  }
+
+  toAdd.forEach(f => foods.push(f));
+}
+
+function updateHud() {
+  scoreEl.textContent = `Score: ${score}`;
+  const hs = highScores[chosenHead];
+  hiEl.textContent = hs > 0 ? `${chosenHead} Best: ${hs}` : '';
+}
+
+function init() {
+  snake = [];
+  const sx=Math.floor(COLS/4), sy=Math.floor(ROWS/2);
+  for (let i=0;i<3;i++) snake.push({x:sx-i, y:sy});
+  dir='RIGHT'; nextDir='RIGHT';
+  score=0; foods=[];
+  state='waiting';
+  spawnFood();
+  if (loopId) clearInterval(loopId);
+  loopId = setInterval(step, 100);
+  updateHud();
+}
+
+function handleSpace() {
+  if (state==='waiting'||state==='paused') state='running';
+  else if (state==='running') state='paused';
+  else if (state==='over'||state==='won') init();
+  draw();
+}
+
+function recordScore() {
+  if (score > highScores[chosenHead]) highScores[chosenHead] = score;
+  updateHud();
+}
+
+function step() {
+  if (state!=='running') return;
+  dir = nextDir;
+  const d=DIR[dir], nx=snake[0].x+d.x, ny=snake[0].y+d.y;
+  if (nx<0||nx>=COLS||ny<0||ny>=ROWS) { state='over'; recordScore(); draw(); return; }
+  if (snake.some(s=>s.x===nx&&s.y===ny)) { state='over'; recordScore(); draw(); return; }
+
+  snake.unshift({x:nx, y:ny});
+  const fi = foods.findIndex(f=>f.x===nx&&f.y===ny);
+  if (fi !== -1) {
+    const eaten = foods.splice(fi, 1)[0];
+    score = Math.max(0, score + foodPoints(eaten.type));
+    updateHud();
+    spawnFood();
+    if (snake.length===COLS*ROWS) { state='won'; recordScore(); draw(); return; }
+  } else {
+    snake.pop();
+  }
+  draw();
+}
+
+function emoji(e, cx, cy, size) {
+  ctx.font = `${size}px serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(e, cx, cy);
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  ctx.strokeStyle='#f2f2f2'; ctx.lineWidth=0.5;
+  for(let x=0;x<=COLS;x++){ctx.beginPath();ctx.moveTo(x*CELL,0);ctx.lineTo(x*CELL,ROWS*CELL);ctx.stroke();}
+  for(let y=0;y<=ROWS;y++){ctx.beginPath();ctx.moveTo(0,y*CELL);ctx.lineTo(COLS*CELL,y*CELL);ctx.stroke();}
+
+  foods.forEach(f => emoji(foodEmoji(f.type), f.x*CELL+CELL/2, f.y*CELL+CELL/2, CELL-2));
+  for(let i=snake.length-1;i>=1;i--) emoji(BODY, snake[i].x*CELL+CELL/2, snake[i].y*CELL+CELL/2, CELL-1);
+  if (snake.length) emoji(chosenHead, snake[0].x*CELL+CELL/2, snake[0].y*CELL+CELL/2, CELL-1);
+
+  if (state==='waiting') drawOverlay('🐍  SNAKE', 'Press Space to start', false);
+  if (state==='paused')  drawOverlay('⏸  PAUSED', 'Space to resume', false);
+  if (state==='over')    drawOverlay('💀  GAME OVER', `Score: ${score}`, true);
+  if (state==='won')     drawOverlay('🎉  YOU WIN!', `Score: ${score}`, true);
+}
+
+// Overlay button hit area
+let overlayBtns = [];
+
+function drawOverlay(title, sub, showButtons) {
+  overlayBtns = [];
+  const cx=canvas.width/2, cy=canvas.height/2;
+  const boxH = showButtons ? 130 : 100;
+  const boxY = cy - boxH/2;
+
+  ctx.fillStyle='rgba(255,255,255,0.95)';
+  ctx.beginPath(); ctx.roundRect(cx-165, boxY, 330, boxH, 10); ctx.fill();
+  ctx.strokeStyle='#e94560'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.roundRect(cx-165, boxY, 330, boxH, 10); ctx.stroke();
+
+  ctx.fillStyle='#222'; ctx.font='bold 20px Helvetica';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(title, cx, boxY+28);
+  ctx.fillStyle='#888'; ctx.font='13px Helvetica';
+  ctx.fillText(sub, cx, boxY+56);
+
+  if (showButtons) {
+    // Play Again button
+    const b1 = {x:cx-150, y:boxY+76, w:140, h:36, label:'▶  Play Again', action:'retry'};
+    // Change Character button
+    const b2 = {x:cx+10,  y:boxY+76, w:140, h:36, label:'👾  Change Character', action:'picker'};
+    [b1,b2].forEach(b => {
+      ctx.fillStyle = b.action==='retry' ? '#e94560' : '#f0f0f0';
+      ctx.beginPath(); ctx.roundRect(b.x, b.y, b.w, b.h, 7); ctx.fill();
+      ctx.fillStyle = b.action==='retry' ? '#fff' : '#444';
+      ctx.font = 'bold 12px Helvetica';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(b.label, b.x + b.w/2, b.y + b.h/2);
+      overlayBtns.push(b);
+    });
+  }
+}
+
+canvas.addEventListener('click', e => {
+  if (!overlayBtns.length) return;
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  overlayBtns.forEach(b => {
+    if (mx>=b.x && mx<=b.x+b.w && my>=b.y && my<=b.y+b.h) {
+      if (b.action==='retry') handleSpace();
+      if (b.action==='picker') showPicker();
+    }
+  });
+});
+</script>
+</body>
+</html>
