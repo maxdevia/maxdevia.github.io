@@ -8,438 +8,112 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --black: #0a0a0a;
-      --white: #f5f0e8;
-      --yellow: #f7e000;
-      --orange: #ff4d00;
-      --teal: #00e5c8;
-      --red: #ff1744;
-      --grid: rgba(245,240,232,0.04);
+      --bg: #f8f6f1;
+      --ink: #1a1814;
+      --muted: #8a8680;
+      --accent: #c8502a;
+      --accent-light: #e8a882;
+      --border: #dedad3;
+      --card-bg: #ffffff;
+      --grid: rgba(26,24,20,0.04);
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--ink); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
 
-    body {
-      background: var(--black);
-      color: var(--white);
-      font-family: 'DM Sans', sans-serif;
-      overflow-x: hidden;
-    }
-
-    /* GRID OVERLAY */
     body::before {
       content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(var(--grid) 1px, transparent 1px),
-        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-      background-size: 60px 60px;
-      pointer-events: none;
-      z-index: 0;
+      position: fixed; inset: 0;
+      background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 64px 64px;
+      pointer-events: none; z-index: 0;
     }
 
-    /* ─── NAV ─── */
     nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1.2rem 3rem;
-      background: rgba(10,10,10,0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(245,240,232,0.08);
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1.3rem 4rem;
+      background: rgba(248,246,241,0.92); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
     }
+    .nav-logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.08em; }
+    .nav-links { display: flex; gap: 3rem; list-style: none; }
+    .nav-links a { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--muted); text-decoration: none; letter-spacing: 0.12em; text-transform: uppercase; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--accent); }
 
-    .nav-logo {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.6rem;
-      letter-spacing: 0.05em;
-      color: var(--yellow);
-    }
-
-    .nav-links {
-      display: flex;
-      gap: 2.5rem;
-      list-style: none;
-    }
-
-    .nav-links a {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--white);
-      text-decoration: none;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      opacity: 0.7;
-      transition: opacity 0.2s, color 0.2s;
-    }
-
-    .nav-links a:hover { opacity: 1; color: var(--yellow); }
-
-    /* ─── HERO ─── */
     .hero {
-      position: relative;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding: 0 3rem;
-      padding-top: 80px;
-      overflow: hidden;
-      z-index: 1;
+      position: relative; min-height: 100vh;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 0 4rem; padding-top: 80px; overflow: hidden; z-index: 1;
     }
+    .hero-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 1.8rem; opacity: 0; animation: fadeUp 0.7s 0.2s forwards; }
+    .hero-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(5rem, 13vw, 12rem); font-weight: 400; line-height: 0.9; opacity: 0; animation: fadeUp 0.7s 0.35s forwards; }
+    .hero-name em { font-style: normal; color: var(--accent); }
+    .hero-subtitle { font-size: clamp(0.95rem, 1.5vw, 1.15rem); font-weight: 300; line-height: 1.75; max-width: 500px; color: var(--muted); margin-top: 2.2rem; opacity: 0; animation: fadeUp 0.7s 0.5s forwards; }
+    .hero-cta { display: flex; gap: 1rem; margin-top: 3rem; opacity: 0; animation: fadeUp 0.7s 0.65s forwards; }
 
-    .hero-eyebrow {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
-      letter-spacing: 0.2em;
-      color: var(--teal);
-      text-transform: uppercase;
-      margin-bottom: 1.5rem;
-      opacity: 0;
-      animation: fadeUp 0.6s 0.2s forwards;
-    }
+    .btn { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; text-decoration: none; padding: 0.9rem 2.2rem; cursor: pointer; border: none; transition: all 0.2s; display: inline-block; }
+    .btn-primary { background: var(--ink); color: var(--bg); }
+    .btn-primary:hover { background: var(--accent); }
+    .btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
 
-    .hero-name {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(5rem, 14vw, 14rem);
-      line-height: 0.88;
-      letter-spacing: -0.01em;
-      opacity: 0;
-      animation: fadeUp 0.7s 0.35s forwards;
-    }
-
-    .hero-name span { color: var(--yellow); }
-
-    .hero-subtitle {
-      font-size: clamp(1rem, 2vw, 1.4rem);
-      font-weight: 300;
-      max-width: 520px;
-      line-height: 1.6;
-      margin-top: 2rem;
-      opacity: 0;
-      animation: fadeUp 0.7s 0.5s forwards;
-      color: rgba(245,240,232,0.75);
-    }
-
-    .hero-cta {
-      display: flex;
-      gap: 1rem;
-      margin-top: 3rem;
-      opacity: 0;
-      animation: fadeUp 0.7s 0.65s forwards;
-    }
-
-    .btn {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      text-decoration: none;
-      padding: 0.9rem 2rem;
-      border: none;
-      cursor: pointer;
-      transition: transform 0.15s, box-shadow 0.15s;
-    }
-
-    .btn:hover { transform: translateY(-2px); }
-
-    .btn-primary {
-      background: var(--yellow);
-      color: var(--black);
-      font-weight: 700;
-      box-shadow: 4px 4px 0 var(--orange);
-    }
-
-    .btn-primary:hover { box-shadow: 6px 6px 0 var(--orange); }
-
-    .btn-outline {
-      background: transparent;
-      color: var(--white);
-      border: 1px solid rgba(245,240,232,0.3);
-    }
-
-    .btn-outline:hover { border-color: var(--teal); color: var(--teal); }
-
-    /* BIG BACKGROUND TEXT */
     .hero-bg-text {
-      position: absolute;
-      bottom: -2rem;
-      right: -1rem;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(8rem, 22vw, 22rem);
-      color: rgba(247,224,0,0.04);
-      line-height: 1;
-      pointer-events: none;
-      user-select: none;
-      white-space: nowrap;
+      position: absolute; bottom: -1rem; right: -0.02em;
+      font-family: 'Bebas Neue', sans-serif; font-size: clamp(10rem, 26vw, 24rem);
+      font-weight: 400; color: rgba(200,80,42,0.05);
+      line-height: 1; pointer-events: none; user-select: none; white-space: nowrap;
     }
 
-    /* ─── SECTION SHARED ─── */
-    section {
-      position: relative;
-      z-index: 1;
-      padding: 6rem 3rem;
-    }
+    .ticker-wrap { overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 0.9rem 0; background: rgba(200,80,42,0.04); position: relative; z-index: 1; }
+    .ticker { display: flex; white-space: nowrap; animation: ticker 24s linear infinite; }
+    .ticker-item { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: var(--muted); padding: 0 2.5rem; letter-spacing: 0.08em; }
+    .ticker-item strong { color: var(--accent); font-style: normal; }
 
-    .section-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--orange);
-      margin-bottom: 1rem;
-    }
+    .about-strip { background: var(--ink); color: var(--bg); padding: 4rem; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; position: relative; z-index: 1; }
+    .about-strip h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.2rem, 4vw, 3.5rem); font-weight: 400; line-height: 1.1; }
+    .about-strip h2 em { font-style: normal; color: var(--accent-light); }
+    .about-strip p { font-size: 0.95rem; line-height: 1.85; font-weight: 300; color: rgba(248,246,241,0.65); }
+    .about-strip strong { color: var(--bg); font-weight: 500; }
 
-    .section-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(3rem, 6vw, 5.5rem);
-      line-height: 1;
-      margin-bottom: 3rem;
-    }
+    section { position: relative; z-index: 1; padding: 6rem 4rem; }
+    .section-label { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.8rem; }
+    .section-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(2.5rem, 5vw, 4.5rem); font-weight: 400; line-height: 1.05; margin-bottom: 2.5rem; }
 
-    /* ─── ABOUT STRIP ─── */
-    .about-strip {
-      background: var(--yellow);
-      color: var(--black);
-      padding: 3rem;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3rem;
-      align-items: center;
-      border-top: 4px solid var(--orange);
-      border-bottom: 4px solid var(--orange);
-    }
+    .categories { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 3rem; }
+    .cat-btn { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 0.65rem 1.4rem; background: transparent; border: 1px solid var(--border); color: var(--muted); cursor: pointer; transition: all 0.2s; }
+    .cat-btn:hover, .cat-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(200,80,42,0.05); }
 
-    .about-strip h2 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(2.5rem, 5vw, 4rem);
-      line-height: 1.05;
-      color: var(--black);
-    }
+    .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5px; background: var(--border); border: 1.5px solid var(--border); }
+    .project-card { background: var(--card-bg); padding: 2.5rem; position: relative; overflow: hidden; transition: background 0.25s; }
+    .project-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--card-accent, var(--accent)); transition: width 0.25s; }
+    .project-card:hover { background: #fdfcf9; }
+    .project-card:hover::before { width: 5px; }
+    .project-tag { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--card-accent, var(--accent)); margin-bottom: 1rem; font-weight: 400; }
+    .project-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.9rem; font-weight: 400; margin-bottom: 0.8rem; line-height: 1.1; }
+    .project-desc { font-size: 0.87rem; line-height: 1.7; color: var(--muted); font-weight: 300; }
+    .project-stack { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.5rem; }
+    .stack-pill { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; letter-spacing: 0.06em; padding: 0.25rem 0.65rem; background: rgba(26,24,20,0.04); border: 1px solid var(--border); color: var(--muted); }
 
-    .about-strip p {
-      font-size: 1.05rem;
-      line-height: 1.7;
-      font-weight: 400;
-      color: rgba(10,10,10,0.8);
-    }
+    .contact-section { background: var(--accent); color: var(--bg); padding: 5rem 4rem; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; position: relative; z-index: 1; }
+    .contact-section h2 { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 6vw, 5rem); font-weight: 400; line-height: 1; }
+    .contact-section h2 em { font-style: normal; }
+    .contact-section p { font-size: 0.95rem; line-height: 1.8; color: rgba(248,246,241,0.8); margin-bottom: 2rem; font-weight: 300; }
+    .contact-links { display: flex; flex-direction: column; }
+    .contact-link { display: flex; align-items: center; justify-content: space-between; font-size: 0.88rem; color: var(--bg); text-decoration: none; border-bottom: 1px solid rgba(248,246,241,0.25); padding: 1.2rem 0; transition: border-color 0.2s; }
+    .contact-link:hover { border-color: var(--bg); }
+    .contact-link span { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; opacity: 0.6; }
 
-    .about-strip strong { color: var(--black); }
+    footer { padding: 2rem 4rem; display: flex; justify-content: space-between; border-top: 1px solid var(--border); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.1em; position: relative; z-index: 1; }
 
-    /* ─── PROJECTS GRID ─── */
-    .projects-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 1.5px;
-      background: rgba(245,240,232,0.06);
-      border: 1.5px solid rgba(245,240,232,0.06);
-    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-    .project-card {
-      background: var(--black);
-      padding: 2.5rem;
-      position: relative;
-      overflow: hidden;
-      transition: background 0.25s;
-      cursor: default;
-    }
-
-    .project-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
-      width: 3px;
-      height: 100%;
-      background: var(--card-accent, var(--yellow));
-      transition: width 0.25s;
-    }
-
-    .project-card:hover { background: rgba(245,240,232,0.03); }
-    .project-card:hover::before { width: 6px; }
-
-    .project-tag {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--card-accent, var(--yellow));
-      margin-bottom: 1rem;
-    }
-
-    .project-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2rem;
-      letter-spacing: 0.02em;
-      margin-bottom: 0.8rem;
-      line-height: 1.1;
-    }
-
-    .project-desc {
-      font-size: 0.9rem;
-      line-height: 1.65;
-      color: rgba(245,240,232,0.65);
-      font-weight: 300;
-    }
-
-    .project-stack {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 1.5rem;
-    }
-
-    .stack-pill {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.65rem;
-      padding: 0.3rem 0.7rem;
-      background: rgba(245,240,232,0.06);
-      border: 1px solid rgba(245,240,232,0.1);
-      letter-spacing: 0.05em;
-      color: rgba(245,240,232,0.5);
-    }
-
-    /* ─── CATEGORIES ─── */
-    .categories {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 3rem;
-    }
-
-    .cat-btn {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.72rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 0.8rem 1.2rem;
-      background: transparent;
-      border: 1px solid rgba(245,240,232,0.15);
-      color: rgba(245,240,232,0.5);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .cat-btn:hover, .cat-btn.active {
-      border-color: var(--yellow);
-      color: var(--yellow);
-      background: rgba(247,224,0,0.05);
-    }
-
-    /* ─── CONTACT ─── */
-    .contact-section {
-      background: var(--orange);
-      color: var(--black);
-      padding: 5rem 3rem;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3rem;
-      align-items: center;
-    }
-
-    .contact-section h2 {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(3rem, 6vw, 5.5rem);
-      line-height: 1;
-      color: var(--black);
-    }
-
-    .contact-section p {
-      font-size: 1rem;
-      line-height: 1.7;
-      color: rgba(10,10,10,0.75);
-      margin-bottom: 2rem;
-    }
-
-    .contact-links {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .contact-link {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      color: var(--black);
-      text-decoration: none;
-      font-weight: 700;
-      border-bottom: 2px solid rgba(10,10,10,0.2);
-      padding-bottom: 1rem;
-      transition: border-color 0.2s;
-    }
-
-    .contact-link:hover { border-color: var(--black); }
-
-    .contact-link span { opacity: 0.5; font-weight: 400; }
-
-    /* ─── FOOTER ─── */
-    footer {
-      padding: 2rem 3rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-top: 1px solid rgba(245,240,232,0.06);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.7rem;
-      color: rgba(245,240,232,0.25);
-      letter-spacing: 0.08em;
-      z-index: 1;
-      position: relative;
-    }
-
-    /* ─── TICKER ─── */
-    .ticker-wrap {
-      overflow: hidden;
-      border-top: 1px solid rgba(245,240,232,0.08);
-      border-bottom: 1px solid rgba(245,240,232,0.08);
-      padding: 0.8rem 0;
-      background: rgba(255,77,0,0.06);
-      position: relative;
-      z-index: 1;
-    }
-
-    .ticker {
-      display: flex;
-      white-space: nowrap;
-      animation: ticker 22s linear infinite;
-    }
-
-    .ticker-item {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.1rem;
-      letter-spacing: 0.08em;
-      color: rgba(245,240,232,0.3);
-      padding: 0 2.5rem;
-    }
-
-    .ticker-item strong { color: var(--orange); }
-
-    /* ─── ANIMATIONS ─── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes ticker {
-      from { transform: translateX(0); }
-      to   { transform: translateX(-50%); }
-    }
-
-    /* ─── RESPONSIVE ─── */
     @media (max-width: 768px) {
-      nav { padding: 1rem 1.5rem; }
-      .nav-links { display: none; }
-      section { padding: 4rem 1.5rem; }
+      nav { padding: 1rem 1.5rem; } .nav-links { display: none; }
       .hero { padding: 0 1.5rem; padding-top: 70px; }
-      .about-strip { grid-template-columns: 1fr; padding: 2rem 1.5rem; }
+      section { padding: 4rem 1.5rem; }
+      .about-strip { grid-template-columns: 1fr; padding: 3rem 1.5rem; gap: 2rem; }
       .contact-section { grid-template-columns: 1fr; padding: 3rem 1.5rem; }
       footer { padding: 1.5rem; flex-direction: column; gap: 0.5rem; text-align: center; }
     }
@@ -447,9 +121,8 @@
 </head>
 <body>
 
-  <!-- NAV -->
   <nav>
-    <div class="nav-logo">MD</div>
+    <div class="nav-logo">Max Devia</div>
     <ul class="nav-links">
       <li><a href="#projects">Projects</a></li>
       <li><a href="#about">About</a></li>
@@ -457,10 +130,9 @@
     </ul>
   </nav>
 
-  <!-- HERO -->
   <section class="hero">
     <div class="hero-eyebrow">// AI Portfolio &amp; Project Showcase</div>
-    <h1 class="hero-name">MAX<br><span>DEVIA</span></h1>
+    <h1 class="hero-name">Max<br><em>Devia</em></h1>
     <p class="hero-subtitle">Building real-world tools with AI — from automation workflows and real estate systems to software experiments that actually ship.</p>
     <div class="hero-cta">
       <a href="#projects" class="btn btn-primary">View Projects</a>
@@ -469,7 +141,6 @@
     <div class="hero-bg-text">AI</div>
   </section>
 
-  <!-- TICKER -->
   <div class="ticker-wrap">
     <div class="ticker">
       <span class="ticker-item">Automation Workflows</span>
@@ -482,7 +153,6 @@
       <span class="ticker-item"><strong>✦</strong></span>
       <span class="ticker-item">Business Demos</span>
       <span class="ticker-item"><strong>✦</strong></span>
-      <!-- duplicate for seamless loop -->
       <span class="ticker-item">Automation Workflows</span>
       <span class="ticker-item"><strong>✦</strong></span>
       <span class="ticker-item">Real Estate Tools</span>
@@ -496,119 +166,113 @@
     </div>
   </div>
 
-  <!-- ABOUT -->
   <div class="about-strip" id="about">
-    <h2>AI isn't a trend.<br>It's a tool.<br>I build with it.</h2>
+    <h2>AI isn't a trend.<br>It's a <em>tool.</em><br>I build with it.</h2>
     <p>I'm Max Devia — entrepreneur, real estate operator, and builder. I use AI to solve real problems: automating workflows, building software tools, and running smarter businesses. <strong>Every project on this site started with a real need and ended with something that works.</strong></p>
   </div>
 
-  <!-- PROJECTS -->
   <section id="projects">
     <div class="section-label">// What I've Built</div>
     <h2 class="section-title">Projects</h2>
-
     <div class="categories">
       <button class="cat-btn active" onclick="filterProjects('all', this)">All Projects</button>
       <button class="cat-btn" onclick="filterProjects('automation', this)">Automation</button>
       <button class="cat-btn" onclick="filterProjects('real-estate', this)">Real Estate</button>
       <button class="cat-btn" onclick="filterProjects('software', this)">Software / Apps</button>
       <button class="cat-btn" onclick="filterProjects('experiment', this)">Experiments</button>
+      <button class="cat-btn" onclick="filterProjects('client-work', this)">Client Work</button>
     </div>
-
     <div class="projects-grid" id="projects-grid">
-
-      <div class="project-card" data-cat="real-estate" style="--card-accent: #00e5c8">
+      <div class="project-card" data-cat="real-estate" style="--card-accent: #7a9e87">
         <div class="project-tag">Real Estate Tools</div>
         <div class="project-title">Tenant Notice Generator</div>
         <p class="project-desc">AI-powered document tool that generates legally-formatted 3-Day Notices to Pay or Vacate for Ohio rental properties — reducing time from 30 minutes to under 2.</p>
-        <div class="project-stack">
-          <span class="stack-pill">Claude API</span>
-          <span class="stack-pill">Ohio Landlord Law</span>
-          <span class="stack-pill">Document Gen</span>
-        </div>
+        <div class="project-stack"><span class="stack-pill">Claude API</span><span class="stack-pill">Ohio Landlord Law</span><span class="stack-pill">Document Gen</span></div>
       </div>
-
-      <div class="project-card" data-cat="automation" style="--card-accent: #f7e000">
+      <div class="project-card" data-cat="automation" style="--card-accent: #c8502a">
         <div class="project-tag">Automation</div>
         <div class="project-title">Property Management Workflow</div>
         <p class="project-desc">End-to-end automation for rent collection tracking, tenant communication, and maintenance logging across multiple rental properties.</p>
-        <div class="project-stack">
-          <span class="stack-pill">AI Automation</span>
-          <span class="stack-pill">Multi-property</span>
-          <span class="stack-pill">Workflow Design</span>
-        </div>
+        <div class="project-stack"><span class="stack-pill">AI Automation</span><span class="stack-pill">Multi-property</span><span class="stack-pill">Workflow Design</span></div>
       </div>
-
-      <div class="project-card" data-cat="software" style="--card-accent: #ff4d00">
+      <div class="project-card" data-cat="software" style="--card-accent: #4a7fa5">
         <div class="project-tag">Software / Apps</div>
         <div class="project-title">Depreciation Workbook</div>
         <p class="project-desc">Multi-sheet Excel tool built with AI to automate IRS straight-line GDS depreciation schedules for rental property portfolios — accurate, auditable, reusable.</p>
-        <div class="project-stack">
-          <span class="stack-pill">Excel / Python</span>
-          <span class="stack-pill">IRS GDS Rules</span>
-          <span class="stack-pill">Tax Automation</span>
-        </div>
+        <div class="project-stack"><span class="stack-pill">Excel / Python</span><span class="stack-pill">IRS GDS Rules</span><span class="stack-pill">Tax Automation</span></div>
       </div>
-
-      <div class="project-card" data-cat="experiment" style="--card-accent: #ff1744">
+      <div class="project-card" data-cat="experiment" style="--card-accent: #9a6e3a">
         <div class="project-tag">Experiments &amp; Demos</div>
         <div class="project-title">AI Chat Interface</div>
         <p class="project-desc">Custom-built conversational AI interface using the Anthropic API — exploring prompt engineering, context management, and real-time response streaming.</p>
-        <div class="project-stack">
-          <span class="stack-pill">Anthropic API</span>
-          <span class="stack-pill">JavaScript</span>
-          <span class="stack-pill">Prompt Engineering</span>
-        </div>
+        <div class="project-stack"><span class="stack-pill">Anthropic API</span><span class="stack-pill">JavaScript</span><span class="stack-pill">Prompt Engineering</span></div>
       </div>
-
-      <div class="project-card" data-cat="real-estate" style="--card-accent: #00e5c8">
+      <div class="project-card" data-cat="real-estate" style="--card-accent: #7a9e87">
         <div class="project-tag">Real Estate Tools</div>
         <div class="project-title">Rental Portfolio Dashboard</div>
         <p class="project-desc">Financial tracking dashboard for multi-property LLC structures — maps income and expense categories to Schedule E and Schedule C tax line items automatically.</p>
-        <div class="project-stack">
-          <span class="stack-pill">Financial Modeling</span>
-          <span class="stack-pill">Tax Mapping</span>
-          <span class="stack-pill">LLC Structures</span>
-        </div>
+        <div class="project-stack"><span class="stack-pill">Financial Modeling</span><span class="stack-pill">Tax Mapping</span><span class="stack-pill">LLC Structures</span></div>
       </div>
-
-      <div class="project-card" data-cat="automation" style="--card-accent: #f7e000">
+      <div class="project-card" data-cat="automation" style="--card-accent: #c8502a">
         <div class="project-tag">Automation</div>
         <div class="project-title">Business Communication Templates</div>
         <p class="project-desc">AI-generated, legally-aware communication templates for landlord-tenant scenarios — notices, lease clauses, and tenant screening workflows.</p>
-        <div class="project-stack">
-          <span class="stack-pill">Claude API</span>
-          <span class="stack-pill">Legal Templates</span>
-          <span class="stack-pill">Bulk Messaging</span>
-        </div>
+        <div class="project-stack"><span class="stack-pill">Claude API</span><span class="stack-pill">Legal Templates</span><span class="stack-pill">Bulk Messaging</span></div>
+      </div>
+
+      <div class="project-card" data-cat="client-work" style="--card-accent: #1B3A5C">
+        <div class="project-tag">Client Work — Strategy</div>
+        <div class="project-title">South Akron Awning: Website Audit</div>
+        <p class="project-desc">Full AI-assisted website strategy report for a Northeast Ohio awning company operating since 1913 — covering UX, design, conversion, messaging, and SEO gaps with a recommended sitemap and implementation roadmap.</p>
+        <div class="project-stack"><span class="stack-pill">UX Audit</span><span class="stack-pill">SEO Analysis</span><span class="stack-pill">Content Strategy</span><span class="stack-pill">Claude API</span></div>
+      </div>
+
+      <div class="project-card" data-cat="client-work" style="--card-accent: #C94B17">
+        <div class="project-tag">Client Work — Web Design</div>
+        <div class="project-title">South Akron Awning: Custom Design Page</div>
+        <p class="project-desc">AI-assisted design and build of a new Custom Awning Design landing page for southakronawning.com — featuring a step-by-step process flow, trust signals, and conversion-focused CTAs tailored to their 113-year brand.</p>
+        <div class="project-stack"><span class="stack-pill">HTML / CSS</span><span class="stack-pill">Conversion Design</span><span class="stack-pill">Brand Strategy</span></div>
+      </div>
+
+      <div class="project-card" data-cat="client-work" style="--card-accent: #B8941A">
+        <div class="project-tag">Client Work — Full Redesign</div>
+        <div class="project-title">South Akron Awning: Site Redesign</div>
+        <p class="project-desc">Complete AI-assisted website redesign for South Akron Awning — modernized navigation, mobile-first layout, updated messaging hierarchy, and a new visual identity built to convert local Northeast Ohio customers.</p>
+        <div class="project-stack"><span class="stack-pill">Full Redesign</span><span class="stack-pill">Mobile-First</span><span class="stack-pill">Local SEO</span><span class="stack-pill">HTML / CSS</span></div>
+      </div>
+
+      <div class="project-card" data-cat="client-work" style="--card-accent: #5a9e87">
+        <div class="project-tag">Client Work — Website Build</div>
+        <div class="project-title">Halasa Wellness: Full Website</div>
+        <p class="project-desc">AI-built full website for a mental health and therapy practice — includes hero, services, about, booking form, testimonials, and location sections. Built from scratch with branding, copy, and deployment guidance for a first-time business owner launching halasawellness.com.</p>
+        <div class="project-stack"><span class="stack-pill">HTML / CSS</span><span class="stack-pill">Mental Health</span><span class="stack-pill">Booking Integration</span><span class="stack-pill">Brand Identity</span></div>
+      </div>
+
+      <div class="project-card" data-cat="software" style="--card-accent: #4a7fa5">
+        <div class="project-tag">Software / Apps</div>
+        <div class="project-title">Outlook Billing Tracker</div>
+        <p class="project-desc">AI-built React app that syncs Outlook calendar meetings to a billable time log — auto-detects clients and projects from meeting titles, calculates rounded billable hours, tracks invoice numbers and payment status, and exports to CSV. Includes a full client and project budget dashboard.</p>
+        <div class="project-stack"><span class="stack-pill">React</span><span class="stack-pill">Outlook API</span><span class="stack-pill">Billing Automation</span><span class="stack-pill">CSV Export</span></div>
       </div>
 
     </div>
   </section>
 
-  <!-- CONTACT -->
   <div class="contact-section" id="contact">
     <div>
-      <div class="section-label" style="color: rgba(10,10,10,0.5)">//  Let's Connect</div>
-      <h2>Got a project?<br>Let's build it.</h2>
+      <div class="section-label" style="color: rgba(248,246,241,0.6)">// Let's Connect</div>
+      <h2>Got a project?<br><em>Let's build it.</em></h2>
     </div>
     <div>
       <p>I work with clients who want to use AI to solve real problems — not buzzwords, but actual tools that save time and make money.</p>
       <div class="contact-links">
-        <a href="mailto:max.devia@mdevia.com" class="contact-link">
-          max.devia@mdevia.com <span>→ Email</span>
-        </a>
-        <a href="https://linkedin.com/in/maxdevia" target="_blank" class="contact-link">
-          LinkedIn <span>→ Connect</span>
-        </a>
-        <a href="https://github.com/maxdevia" target="_blank" class="contact-link">
-          GitHub <span>→ See the code</span>
-        </a>
+        <a href="mailto:max.devia@mdevia.com" class="contact-link">max.devia@mdevia.com <span>Email →</span></a>
+        <a href="https://linkedin.com/in/maxdevia" target="_blank" class="contact-link">LinkedIn <span>Connect →</span></a>
+        <a href="https://github.com/maxdevia" target="_blank" class="contact-link">GitHub <span>See the code →</span></a>
       </div>
     </div>
   </div>
 
-  <!-- FOOTER -->
   <footer>
     <span>© 2026 Max Devia — mdevia.com</span>
     <span>Built with AI. Deployed on GitHub Pages.</span>
@@ -619,34 +283,22 @@
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       document.querySelectorAll('.project-card').forEach(card => {
-        if (cat === 'all' || card.dataset.cat === cat) {
-          card.style.display = 'block';
-        } else {
-          card.style.display = 'none';
-        }
+        card.style.display = (cat === 'all' || card.dataset.cat === cat) ? 'block' : 'none';
       });
     }
-
-    // Scroll-triggered fade-in for project cards
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry, i) => {
         if (entry.isIntersecting) {
-          setTimeout(() => {
-            entry.target.style.opacity = '1';
-            entry.target.style.transform = 'translateY(0)';
-          }, i * 80);
+          setTimeout(() => { entry.target.style.opacity = '1'; entry.target.style.transform = 'translateY(0)'; }, i * 80);
           observer.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1 });
-
+    }, { threshold: 0.08 });
     document.querySelectorAll('.project-card').forEach(card => {
-      card.style.opacity = '0';
-      card.style.transform = 'translateY(20px)';
+      card.style.opacity = '0'; card.style.transform = 'translateY(18px)';
       card.style.transition = 'opacity 0.5s ease, transform 0.5s ease, background 0.25s';
       observer.observe(card);
     });
   </script>
-
 </body>
 </html>
