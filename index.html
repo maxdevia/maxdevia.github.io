@@ -106,6 +106,23 @@
 
     footer { padding: 2rem 4rem; display: flex; justify-content: space-between; border-top: 1px solid var(--border); font-size: 0.68rem; color: var(--muted); letter-spacing: 0.1em; position: relative; z-index: 1; }
 
+    /* ─── CLICKABLE CARD ─── */
+    .project-card.clickable { cursor: pointer; }
+    .project-card.clickable:hover .project-title { color: var(--card-accent, var(--accent)); }
+    .card-play-hint { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--card-accent, var(--accent)); margin-top: 1.2rem; opacity: 0; transition: opacity 0.2s; }
+    .project-card.clickable:hover .card-play-hint { opacity: 1; }
+
+    /* ─── GAME MODAL ─── */
+    .game-modal-overlay { display: none; position: fixed; inset: 0; background: rgba(26,24,20,0.75); backdrop-filter: blur(6px); z-index: 500; align-items: center; justify-content: center; }
+    .game-modal-overlay.open { display: flex; }
+    .game-modal { background: var(--card-bg); border: 1px solid var(--border); max-width: 620px; width: 95vw; position: relative; animation: fadeUp 0.3s ease; }
+    .game-modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border); }
+    .game-modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.04em; }
+    .game-modal-close { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; letter-spacing: 0.1em; text-transform: uppercase; background: none; border: 1px solid var(--border); color: var(--muted); padding: 0.4rem 0.9rem; cursor: pointer; transition: all 0.2s; }
+    .game-modal-close:hover { border-color: var(--accent); color: var(--accent); }
+    .game-modal-body { padding: 0; line-height: 0; }
+    .game-modal-body iframe { width: 100%; height: 520px; border: none; display: block; }
+
     @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
     @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
@@ -255,8 +272,29 @@
         <div class="project-stack"><span class="stack-pill">React</span><span class="stack-pill">Outlook API</span><span class="stack-pill">Billing Automation</span><span class="stack-pill">CSV Export</span></div>
       </div>
 
+      <div class="project-card clickable" data-cat="experiment" style="--card-accent: #5a8a3c" onclick="openGameModal()">
+        <div class="project-tag">Experiments &amp; Demos</div>
+        <div class="project-title">Snake Game</div>
+        <p class="project-desc">A fully playable browser-based Snake game built with AI — classic arcade mechanics, keyboard controls, score tracking, and increasing speed. Runs entirely in the browser with no dependencies.</p>
+        <div class="project-stack"><span class="stack-pill">JavaScript</span><span class="stack-pill">HTML Canvas</span><span class="stack-pill">Browser Game</span></div>
+        <div class="card-play-hint">▶ Click to Play</div>
+      </div>
+
     </div>
   </section>
+
+  <!-- SNAKE GAME MODAL -->
+  <div class="game-modal-overlay" id="gameModal" onclick="closeGameModalOutside(event)">
+    <div class="game-modal">
+      <div class="game-modal-header">
+        <div class="game-modal-title">Snake Game</div>
+        <button class="game-modal-close" onclick="closeGameModal()">✕ Close</button>
+      </div>
+      <div class="game-modal-body">
+        <iframe id="gameFrame" src="" title="Snake Game" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
 
   <div class="contact-section" id="contact">
     <div>
@@ -279,6 +317,21 @@
   </footer>
 
   <script>
+    function openGameModal() {
+      document.getElementById('gameFrame').src = 'https://maxdevia.github.io/snake_browser.html';
+      document.getElementById('gameModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeGameModal() {
+      document.getElementById('gameModal').classList.remove('open');
+      document.getElementById('gameFrame').src = '';
+      document.body.style.overflow = '';
+    }
+    function closeGameModalOutside(e) {
+      if (e.target === document.getElementById('gameModal')) closeGameModal();
+    }
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeGameModal(); });
+
     function filterProjects(cat, btn) {
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
