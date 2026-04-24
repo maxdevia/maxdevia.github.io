@@ -318,19 +318,18 @@
 
   <script>
     function openGameModal() {
-      document.getElementById('gameFrame').src = 'https://maxdevia.github.io/snake_browser.html';
-      document.getElementById('gameModal').classList.add('open');
-      document.body.style.overflow = 'hidden';
+      const width = 620;
+      const height = 600;
+      const left = (window.screen.width - width) / 2;
+      const top = (window.screen.height - height) / 2;
+      window.open(
+        'https://maxdevia.github.io/snake_browser.html',
+        'SnakeGame',
+        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`
+      );
     }
-    function closeGameModal() {
-      document.getElementById('gameModal').classList.remove('open');
-      document.getElementById('gameFrame').src = '';
-      document.body.style.overflow = '';
-    }
-    function closeGameModalOutside(e) {
-      if (e.target === document.getElementById('gameModal')) closeGameModal();
-    }
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeGameModal(); });
+    function closeGameModal() {}
+    function closeGameModalOutside(e) {}
 
     function filterProjects(cat, btn) {
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
