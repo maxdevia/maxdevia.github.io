@@ -10,21 +10,27 @@
     background:#fff; display:flex; flex-direction:column;
     align-items:center; justify-content:center;
     min-height:100vh; font-family:Helvetica,sans-serif; color:#222;
+    padding:8px; overflow-x:hidden;
+    -webkit-user-select:none; user-select:none;
+    -webkit-touch-callout:none;
   }
   #picker {
     position:fixed; inset:0; background:#fff;
     display:flex; flex-direction:column;
     align-items:center; justify-content:center;
     gap:18px; z-index:10;
+    padding:16px;
+    overflow-y:auto;
   }
-  #picker h1 { font-size:26px; font-weight:bold; }
-  #picker p  { font-size:13px; color:#aaa; }
-  #heads { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; }
+  #picker h1 { font-size:26px; font-weight:bold; text-align:center; }
+  #picker p  { font-size:13px; color:#aaa; text-align:center; }
+  #heads { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; max-width:100%; }
   .head-btn {
     font-size:36px; cursor:pointer; padding:8px 10px;
     border:3px solid transparent; border-radius:12px;
     background:#f5f5f5; transition:border-color .15s, transform .15s;
     position:relative; margin-bottom:22px;
+    touch-action:manipulation;
   }
   .head-btn:hover  { border-color:#ccc; transform:scale(1.1); }
   .head-btn.active { border-color:#e94560; transform:scale(1.15); }
@@ -37,21 +43,55 @@
     margin-top:8px; padding:12px 36px; font-size:15px; font-weight:bold;
     background:#e94560; color:#fff; border:none;
     border-radius:8px; cursor:pointer;
+    touch-action:manipulation;
+    min-width:200px;
   }
   #start-btn:disabled { background:#ddd; color:#aaa; cursor:default; }
   #start-btn:not(:disabled):hover { background:#c73050; }
 
-  #game { display:none; flex-direction:column; align-items:center; }
+  #game { display:none; flex-direction:column; align-items:center; gap:8px; padding:0; max-width:100%; }
   #hud {
-    display:flex; justify-content:space-between; align-items:center;
-    width:420px; margin-bottom:6px; font-size:13px; color:#aaa;
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;
+    gap:8px; margin-bottom:6px; font-size:12px; color:#aaa;
+    width:100%; max-width:420px;
   }
-  #scores { display:flex; gap:16px; align-items:center; }
+  #scores { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
   #score-display { font-size:16px; font-weight:bold; color:#222; }
-  #hi-display { font-size:13px; color:#e94560; font-weight:bold; }
-  canvas { display:block; border:2px solid #eee; border-radius:4px; background:#fff; }
-  #hint { margin-top:6px; font-size:11px; color:#ccc; }
-  #legend { margin-top:5px; font-size:11px; color:#bbb; display:flex; gap:14px; }
+  #hi-display { font-size:12px; color:#e94560; font-weight:bold; }
+  canvas { display:block; border:2px solid #eee; border-radius:4px; background:#fff; max-width:100%; height:auto; }
+  #hint { margin-top:6px; font-size:10px; color:#ccc; text-align:center; }
+  #legend { margin-top:5px; font-size:10px; color:#bbb; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  
+  #controls {
+    display:none; gap:12px; margin-top:12px; width:100%; max-width:300px;
+  }
+  .control-pad {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:6px; width:100%;
+    margin-bottom:12px;
+  }
+  .dir-btn {
+    width:60px; height:60px; font-size:28px; border:2px solid #e94560;
+    background:#fff; border-radius:8px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    touch-action:manipulation;
+    active:scale(0.95); user-select:none;
+  }
+  .dir-btn:active { transform:scale(0.95); }
+  .dir-btn.empty { visibility:hidden; }
+  
+  @media (max-width:480px) {
+    #hud { font-size:11px; }
+    #scores { gap:8px; }
+    .dir-btn { width:50px; height:50px; font-size:24px; gap:4px; }
+    #picker h1 { font-size:22px; }
+    #hint { font-size:9px; }
+    #legend { font-size:9px; }
+  }
+  
+  @media (max-width:360px) {
+    .dir-btn { width:45px; height:45px; font-size:20px; }
+    #picker h1 { font-size:20px; }
+  }
 </style>
 </head>
 <body>
@@ -69,14 +109,33 @@
       <span id="score-display">Score: 0</span>
       <span id="hi-display"></span>
     </div>
-    <span>Space = start/pause/restart &nbsp;•&nbsp; WASD / ↑↓←→</span>
+    <span id="kbd-hint">Space = start/pause/restart &nbsp;•&nbsp; WASD / ↑↓←→</span>
   </div>
   <canvas id="c" width="420" height="420"></canvas>
-  <div id="hint">Arrow keys or WASD to move &nbsp;•&nbsp; R = change character</div>
+  <div id="hint">Use arrow keys, WASD, or buttons to move &nbsp;•&nbsp; R = change character</div>
   <div id="legend">
-    <span>🍎 +10 (always)</span>
-    <span>🍑 +100 (1% chance)</span>
-    <span>🍏 −20 (5% chance)</span>
+    <span>🍎 +10</span>
+    <span>🍑 +100</span>
+    <span>🍏 −20</span>
+  </div>
+  <div id="controls">
+    <div class="control-pad">
+      <button class="dir-btn empty"></button>
+      <button class="dir-btn" data-dir="UP">▲</button>
+      <button class="dir-btn empty"></button>
+      
+      <button class="dir-btn" data-dir="LEFT">◀</button>
+      <button class="dir-btn empty"></button>
+      <button class="dir-btn" data-dir="RIGHT">▶</button>
+      
+      <button class="dir-btn empty"></button>
+      <button class="dir-btn" data-dir="DOWN">▼</button>
+      <button class="dir-btn empty"></button>
+    </div>
+    <div style="display:flex; gap:8px; width:100%;">
+      <button id="play-pause-btn" style="flex:1; padding:10px; background:#e94560; color:#fff; border:none; border-radius:8px; font-weight:bold; touch-action:manipulation;">Play</button>
+      <button id="change-char-btn" style="flex:1; padding:10px; background:#f0f0f0; color:#222; border:none; border-radius:8px; font-weight:bold; touch-action:manipulation;">👾</button>
+    </div>
   </div>
 </div>
 
@@ -142,6 +201,7 @@ document.addEventListener('keydown', e => {
 function launchGame() {
   document.getElementById('picker').style.display = 'none';
   document.getElementById('game').style.display = 'flex';
+  setupTouchControls();
   init();
   draw();
 }
@@ -153,6 +213,103 @@ function showPicker() {
   updatePickerScores();
   // re-highlight current character
   if (chosenHead) selectHead(chosenHead);
+}
+
+// --- Mobile Touch Support ---
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+let touchStartX = 0, touchStartY = 0;
+
+function setupTouchControls() {
+  const controlsDiv = document.getElementById('controls');
+  const isMobile = isMobileDevice();
+  
+  if (isMobile) {
+    controlsDiv.style.display = 'flex';
+    document.getElementById('kbd-hint').style.display = 'none';
+  } else {
+    controlsDiv.style.display = 'none';
+    document.getElementById('kbd-hint').style.display = 'inline';
+  }
+  
+  // Direction button clicks
+  document.querySelectorAll('.dir-btn[data-dir]').forEach(btn => {
+    btn.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      btn.style.background = '#e94560';
+      btn.style.color = '#fff';
+    });
+    btn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      btn.style.background = '#fff';
+      btn.style.color = '#222';
+    });
+    btn.addEventListener('click', (e) => {
+      const dir = btn.dataset.dir;
+      if (state === 'running' && dir !== OPP[dir]) nextDir = dir;
+    });
+  });
+  
+  // Play/pause button
+  const playPauseBtn = document.getElementById('play-pause-btn');
+  playPauseBtn.addEventListener('click', () => {
+    handleSpace();
+    updatePlayPauseBtn();
+  });
+  
+  // Change character button
+  document.getElementById('change-char-btn').addEventListener('click', () => {
+    showPicker();
+  });
+  
+  updatePlayPauseBtn();
+  
+  // Swipe detection
+  canvas.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, false);
+  
+  canvas.addEventListener('touchend', (e) => {
+    if (!touchStartX || !touchStartY) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const dx = touchEndX - touchStartX;
+    const dy = touchEndY - touchStartY;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    const threshold = 40;
+    
+    if (absDx > threshold || absDy > threshold) {
+      let swipeDir = null;
+      if (absDx > absDy) {
+        swipeDir = dx > 0 ? 'RIGHT' : 'LEFT';
+      } else {
+        swipeDir = dy > 0 ? 'DOWN' : 'UP';
+      }
+      
+      if (state === 'running' && swipeDir && swipeDir !== OPP[dir]) {
+        nextDir = swipeDir;
+      }
+    }
+    
+    touchStartX = 0;
+    touchStartY = 0;
+  }, false);
+}
+
+function updatePlayPauseBtn() {
+  const btn = document.getElementById('play-pause-btn');
+  if (!btn) return;
+  if (state === 'waiting' || state === 'over' || state === 'won') {
+    btn.textContent = '▶ Play';
+  } else if (state === 'running') {
+    btn.textContent = '⏸ Pause';
+  } else if (state === 'paused') {
+    btn.textContent = '▶ Resume';
+  }
 }
 
 // --- Game ---
@@ -282,6 +439,8 @@ function draw() {
   if (state==='paused')  drawOverlay('⏸  PAUSED', 'Space to resume', false);
   if (state==='over')    drawOverlay('💀  GAME OVER', `Score: ${score}`, true);
   if (state==='won')     drawOverlay('🎉  YOU WIN!', `Score: ${score}`, true);
+  
+  updatePlayPauseBtn();
 }
 
 // Overlay button hit area
