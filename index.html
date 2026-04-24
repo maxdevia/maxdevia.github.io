@@ -258,11 +258,12 @@
         <div class="project-stack"><span class="stack-pill">Full Redesign</span><span class="stack-pill">Mobile-First</span><span class="stack-pill">Local SEO</span><span class="stack-pill">HTML / CSS</span></div>
       </div>
 
-      <div class="project-card" data-cat="client-work" style="--card-accent: #5a9e87">
+      <div class="project-card clickable" data-cat="client-work" style="--card-accent: #5a9e87" onclick="openPopup('https://maxdevia.github.io/HWindex.html', 'HalasaWellness')">
         <div class="project-tag">Client Work — Website Build</div>
         <div class="project-title">Halasa Wellness: Full Website</div>
         <p class="project-desc">AI-built full website for a mental health and therapy practice — includes hero, services, about, booking form, testimonials, and location sections. Built from scratch with branding, copy, and deployment guidance for a first-time business owner launching halasawellness.com.</p>
         <div class="project-stack"><span class="stack-pill">HTML / CSS</span><span class="stack-pill">Mental Health</span><span class="stack-pill">Booking Integration</span><span class="stack-pill">Brand Identity</span></div>
+        <div class="card-play-hint">▶ Click to Preview</div>
       </div>
 
       <div class="project-card" data-cat="software" style="--card-accent: #4a7fa5">
@@ -317,16 +318,19 @@
   </footer>
 
   <script>
-    function openGameModal() {
-      const width = 620;
-      const height = 600;
+    function openPopup(url, name) {
+      const width = 1024;
+      const height = 700;
       const left = (window.screen.width - width) / 2;
       const top = (window.screen.height - height) / 2;
       window.open(
-        'https://maxdevia.github.io/snake_browser.html',
-        'SnakeGame',
-        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`
+        url,
+        name,
+        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no`
       );
+    }
+    function openGameModal() {
+      openPopup('https://maxdevia.github.io/snake_browser.html', 'SnakeGame');
     }
     function closeGameModal() {}
     function closeGameModalOutside(e) {}
