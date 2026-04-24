@@ -240,16 +240,14 @@ function setupTouchControls() {
       e.preventDefault();
       btn.style.background = '#e94560';
       btn.style.color = '#fff';
-    });
+    }, { passive: false });
     btn.addEventListener('touchend', (e) => {
       e.preventDefault();
       btn.style.background = '#fff';
       btn.style.color = '#222';
-    });
-    btn.addEventListener('click', (e) => {
       const dir = btn.dataset.dir;
-      if (state === 'running' && dir !== OPP[dir]) nextDir = dir;
-    });
+      if (state === 'running' && dir !== OPP[nextDir]) nextDir = dir;
+    }, { passive: false });
   });
   
   // Play/pause button
