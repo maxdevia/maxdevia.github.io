@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>75 Hard</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="75 Hard">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+  :root, [data-theme="forge"] {
+    --bg: #121419; --card: #21242b; --text: #ffffff; --text2: #a6a6a6;
+    --accent: #db1f2e; --accent2: #ff7333;
+    --title-font: -apple-system, "Helvetica Neue", sans-serif;
+    --title-weight: 900;
+    --body-font: -apple-system, "Helvetica Neue", sans-serif;
+  }
+  [data-theme="bloom"] {
+    --bg: #faf2f5; --card: #ffffff; --text: #402640; --text2: #8c738c;
+    --accent: #d95a8c; --accent2: #8c73d9;
+    --title-font: Georgia, "Times New Roman", serif;
+    --title-weight: 700;
+    --body-font: ui-rounded, -apple-system, "Helvetica Neue", sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: var(--body-font);
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+    overscroll-behavior: none;
+  }
+  h1, h2, .title { font-family: var(--title-font); font-weight: var(--title-weight); }
+  .screen { display: none; max-width: 520px; margin: 0 auto; padding: 16px 16px 110px; }
+  .screen.active { display: block; }
+  .card { background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .label { font-size: 11px; font-weight: 800; letter-spacing: .08em; color: var(--accent); margin-bottom: 8px; }
+  .muted { color: var(--text2); }
+  button { font-family: var(--body-font); border: none; cursor: pointer; }
+  .btn-primary {
+    display: block; width: 100%; padding: 16px; border-radius: 14px;
+    background: var(--accent); color: #fff; font-size: 18px;
+    font-family: var(--title-font); font-weight: var(--title-weight);
+  }
+
+  /* Onboarding */
+  #onboarding { text-align: center; padding-top: 48px; }
+  #onboarding h1 { font-size: 52px; color: var(--accent); letter-spacing: .02em; }
+  #onboarding .sub { margin: 8px 0 32px; color: var(--text2); }
+  #name-input {
+    width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 16px;
+    background: var(--card); color: var(--text); margin-bottom: 24px; outline: none;
+    border: 1px solid transparent;
+  }
+  #name-input:focus { border-color: var(--accent); }
+  .theme-option {
+    display: flex; align-items: center; gap: 14px; text-align: left;
+    background: var(--card); border-radius: 14px; padding: 16px; margin-bottom: 12px;
+    border: 2px solid transparent; width: 100%; color: var(--text);
+  }
+  .theme-option.selected { border-color: var(--accent); }
+  .theme-dot { width: 44px; height: 44px; border-radius: 50%; flex: none; }
+  .theme-option .t-name { font-family: var(--title-font); font-weight: var(--title-weight); font-size: 18px; }
+  .theme-option .t-tag { font-size: 13px; color: var(--text2); }
+  .theme-option .t-check { margin-left: auto; font-size: 22px; color: var(--accent); visibility: hidden; }
+  .theme-option.selected .t-check { visibility: visible; }
+
+  /* Today */
+  .day-header { text-align: center; padding: 8px 0 4px; }
+  .day-header h1 { font-size: 34px; }
+  .streak-line { color: var(--text2); font-weight: 600; margin-top: 4px; }
+  .stats { display: flex; gap: 10px; margin: 14px 0; }
+  .stat { flex: 1; background: var(--card); border-radius: 12px; padding: 12px 6px; text-align: center; }
+  .stat .v { font-weight: 800; font-size: 15px; }
+  .stat .k { font-size: 10px; color: var(--text2); margin-top: 2px; }
+  .stat .i { font-size: 12px; }
+  blockquote { font-family: var(--title-font); font-weight: var(--title-weight); font-size: 17px; line-height: 1.35; }
+  cite { display: block; margin-top: 6px; font-style: normal; font-size: 13px; color: var(--text2); }
+  .affirmation { font-style: italic; font-weight: 500; font-size: 16px; line-height: 1.4; }
+  .tasks-head { display: flex; align-items: center; justify-content: space-between; margin: 4px 2px 10px; }
+  .tasks-head .label { color: var(--text2); margin: 0; }
+  .task {
+    display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+    background: var(--card); color: var(--text); border-radius: 14px; padding: 14px; margin-bottom: 10px;
+    transition: opacity .2s;
+  }
+  .task .t-icon {
+    width: 40px; height: 40px; border-radius: 50%; flex: none;
+    display: flex; align-items: center; justify-content: center; font-size: 19px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  .task.done .t-icon { background: var(--accent); }
+  .task .t-label { font-weight: 500; font-size: 15px; }
+  .task.done .t-label { text-decoration: line-through; }
+  .task .t-xp { font-size: 12px; color: var(--text2); }
+  .task .t-box { margin-left: auto; font-size: 24px; color: var(--text2); opacity: .5; }
+  .task.done { opacity: .75; }
+  .task.done .t-box { color: var(--accent); opacity: 1; }
+  .ring { width: 30px; height: 30px; }
+  .ring circle { fill: none; stroke-width: 4; }
+  .ring .track { stroke: color-mix(in srgb, var(--accent) 20%, transparent); }
+  .ring .bar { stroke: var(--accent); stroke-linecap: round; transform: rotate(-90deg); transform-origin: center; transition: stroke-dashoffset .3s; }
+
+  /* Progress */
+  .level-row { display: flex; justify-content: space-between; font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+  .level-row .xp { color: var(--accent); }
+  .bar-track { height: 10px; border-radius: 5px; background: color-mix(in srgb, var(--accent) 15%, transparent); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .3s; }
+  .grid75 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .cell {
+    height: 40px; border-radius: 8px; background: var(--card);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600; color: var(--text2);
+  }
+  .cell.complete { background: var(--accent); color: #fff; }
+  .cell.today { outline: 2px solid var(--accent2); color: var(--text); }
+  .attempt-note { text-align: center; font-size: 13px; color: var(--text2); margin-top: 14px; }
+
+  /* Badges */
+  .badges-sub { text-align: center; color: var(--text2); font-size: 14px; margin-bottom: 16px; }
+  .badge-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .badge { background: var(--card); border-radius: 14px; padding: 20px 8px; text-align: center; }
+  .badge.locked { opacity: .55; }
+  .badge .b-icon { font-size: 34px; }
+  .badge .b-name { font-weight: 800; font-size: 14px; margin-top: 8px; }
+  .badge .b-detail { font-size: 11px; color: var(--text2); margin-top: 4px; }
+
+  /* Settings */
+  .settings-row { display: flex; align-items: center; justify-content: space-between; }
+  .danger { color: #e03131; font-weight: 600; background: none; font-size: 15px; }
+  .footnote { font-size: 11px; color: var(--text2); text-align: center; margin-top: 20px; line-height: 1.5; }
+
+  /* Section titles on tab screens */
+  .screen > h2 { text-align: center; font-size: 28px; padding: 8px 0 16px; }
+
+  /* Tab bar */
+  nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: none; justify-content: space-around;
+    background: color-mix(in srgb, var(--card) 92%, transparent);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid color-mix(in srgb, var(--text2) 20%, transparent);
+  }
+  nav.visible { display: flex; }
+  nav button { background: none; color: var(--text2); font-size: 11px; font-weight: 600; text-align: center; width: 70px; }
+  nav button .n-icon { display: block; font-size: 22px; margin-bottom: 2px; filter: grayscale(1); opacity: .6; }
+  nav button.active { color: var(--accent); }
+  nav button.active .n-icon { filter: none; opacity: 1; }
+
+  /* Overlay celebrations */
+  #overlay {
+    position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 88%, transparent);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center; z-index: 50; padding: 24px;
+  }
+  #overlay.visible { display: flex; }
+  #overlay .inner { text-align: center; max-width: 340px; width: 100%; }
+  #overlay .big { font-size: 76px; }
+  #overlay h2 { font-size: 30px; color: var(--accent); margin: 10px 0; }
+  #overlay p { color: var(--text2); margin-bottom: 8px; line-height: 1.4; }
+  #overlay .btn-primary { margin-top: 16px; }
+  .confetti { position: fixed; top: -12px; font-size: 18px; z-index: 51; animation: fall linear forwards; pointer-events: none; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); } }
+</style>
+</head>
+<body>
+
+<!-- Onboarding -->
+<section id="onboarding" class="screen">
+  <h1>75 HARD</h1>
+  <p class="sub">75 days. 6 daily tasks. Zero compromise.</p>
+  <input id="name-input" type="text" placeholder="Your name" autocomplete="given-name">
+  <button class="theme-option" data-pick="forge">
+    <span class="theme-dot" style="background: linear-gradient(135deg,#db1f2e,#ff7333)"></span>
+    <span><span class="t-name">Forge</span><br><span class="t-tag">Dark steel &amp; crimson. Built for grit.</span></span>
+    <span class="t-check">✔</span>
+  </button>
+  <button class="theme-option" data-pick="bloom">
+    <span class="theme-dot" style="background: linear-gradient(135deg,#d95a8c,#8c73d9)"></span>
+    <span><span class="t-name">Bloom</span><br><span class="t-tag">Rose &amp; lavender. Strong and graceful.</span></span>
+    <span class="t-check">✔</span>
+  </button>
+  <div style="height:16px"></div>
+  <button id="start-btn" class="btn-primary">START DAY 1</button>
+</section>
+
+<!-- Today -->
+<section id="today" class="screen">
+  <div class="day-header">
+    <h1 id="day-title">DAY 1 OF 75</h1>
+    <div class="streak-line">🔥 <span id="streak-count">0</span>-day streak</div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="i">⭐️</div><div class="v" id="stat-level">Rookie</div><div class="k" id="stat-level-k">Level 1</div></div>
+    <div class="stat"><div class="i">⚡️</div><div class="v" id="stat-xp">0</div><div class="k">XP</div></div>
+    <div class="stat"><div class="i">🏆</div><div class="v" id="stat-best">0</div><div class="k">Best streak</div></div>
+  </div>
+  <div class="card">
+    <div class="label">❝ QUOTE OF THE DAY</div>
+    <blockquote id="quote-text"></blockquote>
+    <cite id="quote-author"></cite>
+  </div>
+  <div class="card">
+    <div class="label" style="color: var(--accent2)">♥ TODAY'S AFFIRMATION</div>
+    <p class="affirmation" id="affirmation-text"></p>
+  </div>
+  <div class="tasks-head">
+    <span class="label">TODAY'S TASKS</span>
+    <svg class="ring" viewBox="0 0 36 36">
+      <circle class="track" cx="18" cy="18" r="15.5"></circle>
+      <circle class="bar" id="ring-bar" cx="18" cy="18" r="15.5" stroke-dasharray="97.4" stroke-dashoffset="97.4"></circle>
+    </svg>
+  </div>
+  <div id="task-list"></div>
+</section>
+
+<!-- Progress -->
+<section id="progress" class="screen">
+  <h2>YOUR 75 DAYS</h2>
+  <div class="card">
+    <div class="level-row"><span id="level-title">Level 1 · Rookie</span><span class="xp" id="level-xp">0 XP</span></div>
+    <div class="bar-track"><div class="bar-fill" id="level-bar" style="width:0%"></div></div>
+  </div>
+  <div class="grid75" id="grid75"></div>
+  <p class="attempt-note" id="attempt-note" hidden></p>
+</section>
+
+<!-- Badges -->
+<section id="badges" class="screen">
+  <h2>BADGES</h2>
+  <p class="badges-sub" id="badges-count"></p>
+  <div class="badge-grid" id="badge-grid"></div>
+</section>
+
+<!-- Settings -->
+<section id="settings" class="screen">
+  <h2>SETTINGS</h2>
+  <div class="label" style="color:var(--text2)">THEME</div>
+  <button class="theme-option" data-set="forge">
+    <span class="theme-dot" style="background: linear-gradient(135deg,#db1f2e,#ff7333)"></span>
+    <span><span class="t-name">Forge</span><br><span class="t-tag">Dark steel &amp; crimson. Built for grit.</span></span>
+    <span class="t-check">✔</span>
+  </button>
+  <button class="theme-option" data-set="bloom">
+    <span class="theme-dot" style="background: linear-gradient(135deg,#d95a8c,#8c73d9)"></span>
+    <span><span class="t-name">Bloom</span><br><span class="t-tag">Rose &amp; lavender. Strong and graceful.</span></span>
+    <span class="t-check">✔</span>
+  </button>
+  <div class="label" style="color:var(--text2); margin-top:20px">REMINDERS</div>
+  <div class="card">
+    <p style="font-size:14px; line-height:1.5">iPhone home-screen web apps can't schedule notifications on their own. For Duolingo-style nudges, create four daily alarms or Reminders on your phone:</p>
+    <p class="muted" style="font-size:13px; margin-top:8px; line-height:1.6">
+      ⏰ 7:30 AM — Day starts now 💪<br>
+      ⏰ 1:00 PM — Water check-in 🥤<br>
+      ⏰ 5:00 PM — Evening push 🏃<br>
+      ⏰ 7:00 PM — 🔥 Streak in danger — finish your tasks!
+    </p>
+  </div>
+  <div class="label" style="color:var(--text2); margin-top:20px">CHALLENGE</div>
+  <div class="card settings-row">
+    <button class="danger" id="restart-btn">↺ &nbsp;Restart from Day 1</button>
+  </div>
+  <p class="footnote">75 Hard is a mental toughness program by Andy Frisella.<br>This app is an unofficial tracker. Your data never leaves this device.</p>
+</section>
+
+<!-- Tab bar -->
+<nav id="tabbar">
+  <button data-tab="today" class="active"><span class="n-icon">✅</span>Today</button>
+  <button data-tab="progress"><span class="n-icon">📅</span>Progress</button>
+  <button data-tab="badges"><span class="n-icon">🏅</span>Badges</button>
+  <button data-tab="settings"><span class="n-icon">⚙️</span>Settings</button>
+</nav>
+
+<!-- Celebration overlay -->
+<div id="overlay">
+  <div class="inner">
+    <div class="big" id="ov-emoji">🎉</div>
+    <h2 id="ov-title"></h2>
+    <p id="ov-sub"></p>
+    <button class="btn-primary" id="ov-btn">Keep going</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ---------- Data ----------
+const TASKS = [
+  { id: "workout1", label: "45-min workout", icon: "🏋️", xp: 25 },
+  { id: "workout2", label: "2nd 45-min workout (outdoors)", icon: "🏃", xp: 25 },
+  { id: "diet", label: "Follow your diet — no cheat meals, no alcohol", icon: "🥗", xp: 20 },
+  { id: "water", label: "Drink 1 gallon of water", icon: "💧", xp: 15 },
+  { id: "meditate", label: "10 minutes of meditation", icon: "🧘", xp: 15 },
+  { id: "photo", label: "Take a progress photo", icon: "📸", xp: 10 },
+];
+
+const BADGES = [
+  { id: "day1", name: "First Blood", detail: "Complete Day 1", icon: "🏁", days: 1 },
+  { id: "week1", name: "One Week Strong", detail: "Complete 7 days", icon: "7️⃣", days: 7 },
+  { id: "day14", name: "Fortnight Fighter", detail: "Complete 14 days", icon: "⚡️", days: 14 },
+  { id: "day25", name: "Quarter Crusher", detail: "Complete 25 days", icon: "📈", days: 25 },
+  { id: "day38", name: "Halfway Hero", detail: "Complete 38 days — over the hump", icon: "⛰️", days: 38 },
+  { id: "day50", name: "Fifty Club", detail: "Complete 50 days", icon: "5️⃣0️⃣", days: 50 },
+  { id: "day65", name: "Final Stretch", detail: "Complete 65 days", icon: "🔥", days: 65 },
+  { id: "day75", name: "75 HARD FINISHER", detail: "Complete all 75 days", icon: "👑", days: 75 },
+];
+
+const LEVEL_TITLES = ["Rookie", "Committed", "Disciplined", "Relentless", "Unbreakable", "Iron Will"];
+
+const QUOTES = [
+  ["Discipline is choosing between what you want now and what you want most.", "Abraham Lincoln"],
+  ["We are what we repeatedly do. Excellence, then, is not an act, but a habit.", "Will Durant"],
+  ["It's not about perfect. It's about effort.", "Jillian Michaels"],
+  ["The pain of discipline weighs ounces; the pain of regret weighs tons.", "Jim Rohn"],
+  ["Success is the sum of small efforts, repeated day in and day out.", "Robert Collier"],
+  ["Don't count the days. Make the days count.", "Muhammad Ali"],
+  ["Hard choices, easy life. Easy choices, hard life.", "Jerzy Gregorek"],
+  ["You don't have to be great to start, but you have to start to be great.", "Zig Ziglar"],
+  ["Motivation gets you going, but discipline keeps you growing.", "John C. Maxwell"],
+  ["The only bad workout is the one that didn't happen.", "Unknown"],
+  ["Do something today that your future self will thank you for.", "Sean Patrick Flanery"],
+  ["Strength does not come from winning. Your struggles develop your strengths.", "Arnold Schwarzenegger"],
+  ["It always seems impossible until it's done.", "Nelson Mandela"],
+  ["The secret of getting ahead is getting started.", "Mark Twain"],
+  ["Whether you think you can or you think you can't, you're right.", "Henry Ford"],
+  ["Fall seven times, stand up eight.", "Japanese proverb"],
+  ["What lies behind us and what lies before us are tiny matters compared to what lies within us.", "Ralph Waldo Emerson"],
+  ["You are never too old to set another goal or to dream a new dream.", "C.S. Lewis"],
+  ["Courage doesn't always roar. Sometimes it's the quiet voice at the end of the day saying, 'I will try again tomorrow.'", "Mary Anne Radmacher"],
+  ["A river cuts through rock not because of its power, but because of its persistence.", "James N. Watkins"],
+  ["If it doesn't challenge you, it doesn't change you.", "Fred DeVito"],
+  ["The body achieves what the mind believes.", "Napoleon Hill"],
+  ["Nothing will work unless you do.", "Maya Angelou"],
+  ["Push yourself, because no one else is going to do it for you.", "Unknown"],
+  ["Great things never came from comfort zones.", "Neil Strauss"],
+];
+
+const AFFIRMATIONS = [
+  "I keep the promises I make to myself.",
+  "I am building the strongest version of me, one day at a time.",
+  "My discipline is stronger than my excuses.",
+  "I do hard things — that is who I am.",
+  "Every task I complete today is a vote for the person I am becoming.",
+  "I don't negotiate with my commitments.",
+  "I am mentally tough, and today will prove it again.",
+  "Progress over perfection. Consistency over intensity.",
+  "I control my day; my day does not control me.",
+  "I am capable of far more than I think.",
+  "Today I choose growth over comfort.",
+  "My future self is watching. I will make them proud.",
+  "I finish what I start.",
+  "Small daily wins are building my unstoppable momentum.",
+  "I am not here to be average. I am here to be strong.",
+  "Discipline is my superpower.",
+  "I show up even when it's hard — especially when it's hard.",
+  "Each day completed makes me harder to break.",
+  "I am the kind of person who follows through.",
+  "My streak is proof of my strength.",
+];
+
+// ---------- State ----------
+const KEY = "75hard-state-v1";
+let state = load();
+
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && Array.isArray(s.days)) return s;
+  } catch (e) {}
+  return { onboarded: false, name: "", theme: "forge", days: [], xp: 0, bestStreak: 0, attempts: 0 };
+}
+function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+
+function todayStr(d = new Date()) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function daysBetween(a, b) { // local date strings
+  return Math.round((new Date(b + "T12:00") - new Date(a + "T12:00")) / 86400000);
+}
+
+const currentDay = () => state.days[state.days.length - 1];
+const isDayComplete = (d) => d && d.done.length === TASKS.length;
+const completedCount = () => state.days.filter(isDayComplete).length;
+const challengeComplete = () => state.days.length === 75 && isDayComplete(currentDay());
+
+function streak() {
+  let n = 0;
+  for (let i = state.days.length - 1; i >= 0; i--) {
+    const d = state.days[i];
+    if (isDayComplete(d)) n++;
+    else if (i === state.days.length - 1) continue; // today, in progress
+    else break;
+  }
+  return n;
+}
+
+function levelFor(xp) {
+  let level = 1, threshold = 500, rest = xp;
+  while (rest >= threshold) { rest -= threshold; threshold += 250; level++; }
+  return { level, progress: rest / threshold, title: LEVEL_TITLES[Math.min(level, 6) - 1] || "Legend" };
+}
+
+function dayIndex(count) {
+  const days = Math.floor(new Date(todayStr() + "T12:00").getTime() / 86400000);
+  return days % count;
+}
+
+// ---------- Challenge lifecycle ----------
+function startChallenge() {
+  state.days = [{ n: 1, date: todayStr(), done: [] }];
+  save();
+}
+function restartAfterFailure() {
+  state.attempts++;
+  startChallenge();
+}
+function rollForward() {
+  if (!state.onboarded || state.days.length === 0 || challengeComplete()) return;
+  const last = currentDay();
+  const diff = daysBetween(last.date, todayStr());
+  if (diff <= 0) return;
+  if (!isDayComplete(last) || diff > 1) {
+    restartAfterFailure();
+    showOverlay("💀", "BACK TO DAY 1", "A day was missed — that's the 75 Hard rule. Attempt #" + (state.attempts + 1) + " starts today. You're tougher now.");
+  } else {
+    state.days.push({ n: last.n + 1, date: todayStr(), done: [] });
+    save();
+  }
+  render();
+}
+
+function toggleTask(id) {
+  const day = currentDay();
+  if (!day || challengeComplete() && day.done.includes(id)) return;
+  const task = TASKS.find(t => t.id === id);
+  const wasComplete = isDayComplete(day);
+  const i = day.done.indexOf(id);
+  if (i >= 0) { day.done.splice(i, 1); state.xp = Math.max(0, state.xp - task.xp); }
+  else { day.done.push(id); state.xp += task.xp; }
+
+  if (!wasComplete && isDayComplete(day)) {
+    state.xp += 50;
+    state.bestStreak = Math.max(state.bestStreak, streak());
+    save();
+    const badge = BADGES.find(b => b.days === completedCount());
+    confetti();
+    if (challengeComplete()) {
+      showOverlay("👑", "75 HARD COMPLETE", "All 75 days. You did the whole thing, " + (state.name || "champ") + ". Unbreakable.");
+    } else if (badge) {
+      showOverlay(badge.icon, badge.name, "Badge unlocked — " + badge.detail + ". Plus +50 XP perfect-day bonus.");
+    } else {
+      showOverlay("🎉", "DAY " + day.n + " CRUSHED", "+50 XP perfect-day bonus. " + (75 - day.n) + " days to go. See you tomorrow.");
+    }
+  } else {
+    save();
+  }
+  render();
+}
+
+// ---------- UI ----------
+const $ = (id) => document.getElementById(id);
+let activeTab = "today";
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  $(tab).classList.add("active");
+  document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+  render();
+}
+
+function render() {
+  document.documentElement.dataset.theme = state.theme;
+  if (!state.onboarded) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    $("onboarding").classList.add("active");
+    $("tabbar").classList.remove("visible");
+    return;
+  }
+  $("tabbar").classList.add("visible");
+  if ($("onboarding").classList.contains("active")) switchTab("today");
+
+  const day = currentDay();
+  const lv = levelFor(state.xp);
+
+  // Today
+  $("day-title").textContent = challengeComplete() ? "CHALLENGE COMPLETE" : "DAY " + day.n + " OF 75";
+  $("streak-count").textContent = streak();
+  $("stat-level").textContent = lv.title;
+  $("stat-level-k").textContent = "Level " + lv.level;
+  $("stat-xp").textContent = state.xp;
+  $("stat-best").textContent = state.bestStreak;
+  const q = QUOTES[dayIndex(QUOTES.length)];
+  $("quote-text").textContent = "“" + q[0] + "”";
+  $("quote-author").textContent = "— " + q[1];
+  $("affirmation-text").textContent = AFFIRMATIONS[dayIndex(AFFIRMATIONS.length)];
+  $("ring-bar").style.strokeDashoffset = 97.4 * (1 - day.done.length / TASKS.length);
+
+  $("task-list").innerHTML = TASKS.map(t => {
+    const done = day.done.includes(t.id);
+    return `<button class="task ${done ? "done" : ""}" data-task="${t.id}">
+      <span class="t-icon">${t.icon}</span>
+      <span><span class="t-label">${t.label}</span><br><span class="t-xp">+${t.xp} XP</span></span>
+      <span class="t-box">${done ? "✔" : "○"}</span>
+    </button>`;
+  }).join("");
+
+  // Progress
+  $("level-title").textContent = "Level " + lv.level + " · " + lv.title;
+  $("level-xp").textContent = state.xp + " XP";
+  $("level-bar").style.width = (lv.progress * 100).toFixed(1) + "%";
+  let cells = "";
+  for (let n = 1; n <= 75; n++) {
+    const rec = state.days.find(d => d.n === n);
+    const cls = "cell" + (rec && isDayComplete(rec) ? " complete" : "") + (n === day.n ? " today" : "");
+    cells += `<div class="${cls}">${rec && isDayComplete(rec) ? "✔" : n}</div>`;
+  }
+  $("grid75").innerHTML = cells;
+  $("attempt-note").hidden = state.attempts === 0;
+  $("attempt-note").textContent = "Attempt #" + (state.attempts + 1) + " — every restart builds mental toughness.";
+
+  // Badges
+  const earned = BADGES.filter(b => b.days <= completedCount());
+  $("badges-count").textContent = earned.length + " of " + BADGES.length + " earned";
+  $("badge-grid").innerHTML = BADGES.map(b => {
+    const has = b.days <= completedCount();
+    return `<div class="badge ${has ? "" : "locked"}">
+      <div class="b-icon">${has ? b.icon : "🔒"}</div>
+      <div class="b-name">${b.name}</div>
+      <div class="b-detail">${has ? b.detail : "Locked · " + b.days + " days"}</div>
+    </div>`;
+  }).join("");
+
+  // Settings theme selection
+  document.querySelectorAll("[data-set]").forEach(b => b.classList.toggle("selected", b.dataset.set === state.theme));
+}
+
+// ---------- Overlay & confetti ----------
+function showOverlay(emoji, title, sub) {
+  $("ov-emoji").textContent = emoji;
+  $("ov-title").textContent = title;
+  $("ov-sub").textContent = sub;
+  $("overlay").classList.add("visible");
+}
+function confetti() {
+  const glyphs = ["🎉", "⭐️", "🔥", "💪", "✨"];
+  for (let i = 0; i < 24; i++) {
+    const el = document.createElement("div");
+    el.className = "confetti";
+    el.textContent = glyphs[i % glyphs.length];
+    el.style.left = Math.random() * 100 + "vw";
+    el.style.animationDuration = 1.6 + Math.random() * 1.6 + "s";
+    el.style.animationDelay = Math.random() * 0.4 + "s";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+  }
+}
+
+// ---------- Events ----------
+let pickedTheme = "forge";
+document.querySelectorAll("[data-pick]").forEach(b => {
+  b.addEventListener("click", () => {
+    pickedTheme = b.dataset.pick;
+    document.documentElement.dataset.theme = pickedTheme;
+    document.querySelectorAll("[data-pick]").forEach(x => x.classList.toggle("selected", x === b));
+  });
+});
+document.querySelector('[data-pick="forge"]').classList.add("selected");
+
+$("start-btn").addEventListener("click", () => {
+  state.name = $("name-input").value.trim();
+  state.theme = pickedTheme;
+  state.onboarded = true;
+  startChallenge();
+  switchTab("today");
+});
+
+$("task-list").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-task]");
+  if (btn) toggleTask(btn.dataset.task);
+});
+
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => switchTab(b.dataset.tab)));
+
+document.querySelectorAll("[data-set]").forEach(b => {
+  b.addEventListener("click", () => { state.theme = b.dataset.set; save(); render(); });
+});
+
+$("restart-btn").addEventListener("click", () => {
+  if (confirm("Restart the challenge? Your day progress resets to Day 1. XP and attempt history are kept.")) {
+    restartAfterFailure();
+    render();
+    switchTab("today");
+  }
+});
+
+$("ov-btn").addEventListener("click", () => $("overlay").classList.remove("visible"));
+
+document.addEventListener("visibilitychange", () => { if (!document.hidden) rollForward(); });
+
+// ---------- Boot ----------
+rollForward();
+render();
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+</script>
+</body>
+</html>
