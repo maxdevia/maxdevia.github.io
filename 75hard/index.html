@@ -604,8 +604,16 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) roll
 
 // ---------- Boot ----------
 rollForward();
-render();
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js");
+if (state.onboarded) switchTab("today");
+else render();
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js");
+  // When an updated service worker takes over, reload once so the new version shows immediately.
+  let refreshed = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!refreshed) { refreshed = true; location.reload(); }
+  });
+}
 </script>
 </body>
 </html>
