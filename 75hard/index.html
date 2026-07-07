@@ -134,6 +134,7 @@
   .custom-task-row .c-emoji { font-size: 20px; }
   .custom-task-row .c-label { font-size: 14px; font-weight: 500; flex: 1; }
   .custom-task-row .c-del { background: none; color: #e03131; font-size: 16px; padding: 4px 8px; }
+  .custom-task-row .c-edit { background: none; font-size: 15px; padding: 4px 6px; }
   .add-task-form { display: flex; gap: 8px; margin-top: 12px; }
   .add-task-form input { border: none; border-radius: 10px; padding: 12px; background: var(--bg); color: var(--text); font-size: 14px; outline: none; border: 1px solid transparent; }
   .add-task-form input:focus { border-color: var(--accent); }
@@ -260,15 +261,16 @@
     <span><span class="t-name">Bloom</span><br><span class="t-tag">Rose &amp; lavender. Strong and graceful.</span></span>
     <span class="t-check">✔</span>
   </button>
-  <div class="label" style="color:var(--text2); margin-top:20px">CUSTOM TASKS</div>
+  <div class="label" style="color:var(--text2); margin-top:20px">DAILY TASKS</div>
   <div class="card">
-    <p style="font-size:14px; line-height:1.5">Add your own daily tasks — they appear on today's checklist, count toward completing the day, and earn +15 XP each.</p>
-    <div id="custom-task-list" style="margin-top:12px"></div>
+    <p style="font-size:14px; line-height:1.5">Make the challenge your own — tap ✏️ to rename a task or change its emoji, ✕ to remove it, or add new ones below (+15 XP each). All tasks count toward completing the day.</p>
+    <div id="task-manage-list" style="margin-top:12px"></div>
     <div class="add-task-form">
       <input id="new-task-emoji" type="text" maxlength="4" placeholder="⭐️" aria-label="Emoji">
       <input id="new-task-label" type="text" maxlength="60" placeholder="e.g. No social media" aria-label="Task name">
       <button class="add-btn" id="add-task-btn">Add</button>
     </div>
+    <button id="cancel-edit-btn" hidden style="background:none; color:var(--text2); font-size:13px; margin-top:10px; text-decoration:underline">Cancel editing</button>
   </div>
   <div class="label" style="color:var(--text2); margin-top:20px">REMINDERS</div>
   <div class="card">
@@ -390,11 +392,15 @@ function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
     if (s && Array.isArray(s.days)) {
-      if (!Array.isArray(s.customTasks)) s.customTasks = [];
+      // Migrate older saves: unify built-in defaults + any custom tasks into one editable list.
+      if (!Array.isArray(s.tasks)) {
+        s.tasks = TASKS.map(t => ({ ...t })).concat(Array.isArray(s.customTasks) ? s.customTasks : []);
+        delete s.customTasks;
+      }
       return s;
     }
   } catch (e) {}
-  return { onboarded: false, name: "", theme: "forge", days: [], xp: 0, bestStreak: 0, attempts: 0, customTasks: [] };
+  return { onboarded: false, name: "", theme: "forge", days: [], xp: 0, bestStreak: 0, attempts: 0, tasks: TASKS.map(t => ({ ...t })) };
 }
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -406,7 +412,7 @@ function daysBetween(a, b) { // local date strings
 }
 
 const currentDay = () => state.days[state.days.length - 1];
-const allTasks = () => TASKS.concat(state.customTasks);
+const allTasks = () => state.tasks;
 const taskById = (id) => allTasks().find(t => t.id === id);
 // Each day tracks the task set that applied to it; older records fall back to the built-ins.
 const tasksForDay = (d) => (d.tasks || TASKS.map(t => t.id)).map(taskById).filter(Boolean);
@@ -491,9 +497,9 @@ function toggleTask(id) {
   render();
 }
 
-function addCustomTask(icon, label) {
+function addTask(icon, label) {
   const task = { id: "c" + Date.now(), label, icon: icon || "⭐️", xp: 15 };
-  state.customTasks.push(task);
+  state.tasks.push(task);
   const day = currentDay();
   if (day && !challengeComplete()) {
     if (!day.tasks) day.tasks = TASKS.map(t => t.id); // migrate pre-update day records
@@ -503,10 +509,23 @@ function addCustomTask(icon, label) {
   render();
 }
 
-function removeCustomTask(id) {
+function editTask(id, icon, label) {
+  const task = state.tasks.find(t => t.id === id);
+  if (!task) return;
+  if (icon) task.icon = icon;
+  task.label = label;
+  save();
+  render();
+}
+
+function removeTask(id) {
+  if (state.tasks.length <= 1) {
+    alert("You need at least one task to keep the challenge going.");
+    return;
+  }
   const day = currentDay();
   const wasComplete = day ? isDayComplete(day) : true;
-  state.customTasks = state.customTasks.filter(t => t.id !== id);
+  state.tasks = state.tasks.filter(t => t.id !== id);
   if (day) {
     if (day.tasks) day.tasks = day.tasks.filter(t => t !== id);
     day.done = day.done.filter(t => t !== id);
@@ -596,14 +615,13 @@ function render() {
   // Settings theme selection
   document.querySelectorAll("[data-set]").forEach(b => b.classList.toggle("selected", b.dataset.set === state.theme));
 
-  // Settings custom tasks
-  $("custom-task-list").innerHTML = state.customTasks.length
-    ? state.customTasks.map(t => `<div class="custom-task-row">
-        <span class="c-emoji">${t.icon}</span>
-        <span class="c-label">${esc(t.label)} <span class="muted" style="font-size:12px">+${t.xp} XP</span></span>
-        <button class="c-del" data-del="${t.id}" aria-label="Delete task">✕</button>
-      </div>`).join("")
-    : '<p class="muted" style="font-size:13px">No custom tasks yet.</p>';
+  // Settings task manager
+  $("task-manage-list").innerHTML = state.tasks.map(t => `<div class="custom-task-row">
+      <span class="c-emoji">${t.icon}</span>
+      <span class="c-label">${esc(t.label)} <span class="muted" style="font-size:12px">+${t.xp} XP</span></span>
+      <button class="c-edit" data-edit="${t.id}" aria-label="Edit task">✏️</button>
+      <button class="c-del" data-del="${t.id}" aria-label="Delete task">✕</button>
+    </div>`).join("");
 }
 
 // ---------- Overlay & confetti ----------
@@ -657,18 +675,43 @@ document.querySelectorAll("[data-set]").forEach(b => {
   b.addEventListener("click", () => { state.theme = b.dataset.set; save(); render(); });
 });
 
+let editingTaskId = null;
+function resetTaskForm() {
+  editingTaskId = null;
+  $("new-task-emoji").value = "";
+  $("new-task-label").value = "";
+  $("add-task-btn").textContent = "Add";
+  $("cancel-edit-btn").hidden = true;
+}
+
 $("add-task-btn").addEventListener("click", () => {
   const label = $("new-task-label").value.trim();
   if (!label) { $("new-task-label").focus(); return; }
-  addCustomTask($("new-task-emoji").value.trim(), label);
-  $("new-task-emoji").value = "";
-  $("new-task-label").value = "";
+  const icon = $("new-task-emoji").value.trim();
+  if (editingTaskId) editTask(editingTaskId, icon, label);
+  else addTask(icon, label);
+  resetTaskForm();
 });
 
-$("custom-task-list").addEventListener("click", (e) => {
-  const btn = e.target.closest("[data-del]");
-  if (btn && confirm("Delete this task? It will be removed from today's checklist too.")) {
-    removeCustomTask(btn.dataset.del);
+$("cancel-edit-btn").addEventListener("click", resetTaskForm);
+
+$("task-manage-list").addEventListener("click", (e) => {
+  const editBtn = e.target.closest("[data-edit]");
+  if (editBtn) {
+    const task = state.tasks.find(t => t.id === editBtn.dataset.edit);
+    if (!task) return;
+    editingTaskId = task.id;
+    $("new-task-emoji").value = task.icon;
+    $("new-task-label").value = task.label;
+    $("add-task-btn").textContent = "Save";
+    $("cancel-edit-btn").hidden = false;
+    $("new-task-label").focus();
+    return;
+  }
+  const delBtn = e.target.closest("[data-del]");
+  if (delBtn && confirm("Delete this task? It will be removed from today's checklist too.")) {
+    if (editingTaskId === delBtn.dataset.del) resetTaskForm();
+    removeTask(delBtn.dataset.del);
   }
 });
 
