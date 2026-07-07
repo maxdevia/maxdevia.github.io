@@ -130,6 +130,16 @@
 
   /* Settings */
   .settings-row { display: flex; align-items: center; justify-content: space-between; }
+  .custom-task-row { display: flex; align-items: center; gap: 10px; background: var(--bg); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .custom-task-row .c-emoji { font-size: 20px; }
+  .custom-task-row .c-label { font-size: 14px; font-weight: 500; flex: 1; }
+  .custom-task-row .c-del { background: none; color: #e03131; font-size: 16px; padding: 4px 8px; }
+  .add-task-form { display: flex; gap: 8px; margin-top: 12px; }
+  .add-task-form input { border: none; border-radius: 10px; padding: 12px; background: var(--bg); color: var(--text); font-size: 14px; outline: none; border: 1px solid transparent; }
+  .add-task-form input:focus { border-color: var(--accent); }
+  #new-task-emoji { width: 56px; text-align: center; }
+  #new-task-label { flex: 1; min-width: 0; }
+  .add-btn { background: var(--accent); color: #fff; border-radius: 10px; padding: 0 18px; font-weight: 700; font-size: 14px; }
   .danger { color: #e03131; font-weight: 600; background: none; font-size: 15px; }
   .footnote { font-size: 11px; color: var(--text2); text-align: center; margin-top: 20px; line-height: 1.5; }
 
@@ -250,6 +260,16 @@
     <span><span class="t-name">Bloom</span><br><span class="t-tag">Rose &amp; lavender. Strong and graceful.</span></span>
     <span class="t-check">✔</span>
   </button>
+  <div class="label" style="color:var(--text2); margin-top:20px">CUSTOM TASKS</div>
+  <div class="card">
+    <p style="font-size:14px; line-height:1.5">Add your own daily tasks — they appear on today's checklist, count toward completing the day, and earn +15 XP each.</p>
+    <div id="custom-task-list" style="margin-top:12px"></div>
+    <div class="add-task-form">
+      <input id="new-task-emoji" type="text" maxlength="4" placeholder="⭐️" aria-label="Emoji">
+      <input id="new-task-label" type="text" maxlength="60" placeholder="e.g. No social media" aria-label="Task name">
+      <button class="add-btn" id="add-task-btn">Add</button>
+    </div>
+  </div>
   <div class="label" style="color:var(--text2); margin-top:20px">REMINDERS</div>
   <div class="card">
     <p style="font-size:14px; line-height:1.5">iPhone home-screen web apps can't schedule notifications on their own. For Duolingo-style nudges, create four daily alarms or Reminders on your phone:</p>
@@ -369,9 +389,12 @@ let state = load();
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(KEY));
-    if (s && Array.isArray(s.days)) return s;
+    if (s && Array.isArray(s.days)) {
+      if (!Array.isArray(s.customTasks)) s.customTasks = [];
+      return s;
+    }
   } catch (e) {}
-  return { onboarded: false, name: "", theme: "forge", days: [], xp: 0, bestStreak: 0, attempts: 0 };
+  return { onboarded: false, name: "", theme: "forge", days: [], xp: 0, bestStreak: 0, attempts: 0, customTasks: [] };
 }
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -383,9 +406,14 @@ function daysBetween(a, b) { // local date strings
 }
 
 const currentDay = () => state.days[state.days.length - 1];
-const isDayComplete = (d) => d && d.done.length === TASKS.length;
+const allTasks = () => TASKS.concat(state.customTasks);
+const taskById = (id) => allTasks().find(t => t.id === id);
+// Each day tracks the task set that applied to it; older records fall back to the built-ins.
+const tasksForDay = (d) => (d.tasks || TASKS.map(t => t.id)).map(taskById).filter(Boolean);
+const isDayComplete = (d) => d && tasksForDay(d).every(t => d.done.includes(t.id));
 const completedCount = () => state.days.filter(isDayComplete).length;
 const challengeComplete = () => state.days.length === 75 && isDayComplete(currentDay());
+const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 function streak() {
   let n = 0;
@@ -411,7 +439,7 @@ function dayIndex(count) {
 
 // ---------- Challenge lifecycle ----------
 function startChallenge() {
-  state.days = [{ n: 1, date: todayStr(), done: [] }];
+  state.days = [{ n: 1, date: todayStr(), done: [], tasks: allTasks().map(t => t.id) }];
   save();
 }
 function restartAfterFailure() {
@@ -427,37 +455,65 @@ function rollForward() {
     restartAfterFailure();
     showOverlay("💀", "BACK TO DAY 1", "A day was missed — that's the 75 Hard rule. Attempt #" + (state.attempts + 1) + " starts today. You're tougher now.");
   } else {
-    state.days.push({ n: last.n + 1, date: todayStr(), done: [] });
+    state.days.push({ n: last.n + 1, date: todayStr(), done: [], tasks: allTasks().map(t => t.id) });
     save();
   }
   render();
 }
 
+function awardDayComplete(day) {
+  state.xp += 50;
+  state.bestStreak = Math.max(state.bestStreak, streak());
+  save();
+  const badge = BADGES.find(b => b.days === completedCount());
+  confetti();
+  if (challengeComplete()) {
+    showOverlay("👑", "75 HARD COMPLETE", "All 75 days. You did the whole thing, " + (state.name || "champ") + ". Unbreakable.");
+  } else if (badge) {
+    showOverlay(badge.icon, badge.name, "Badge unlocked — " + badge.detail + ". Plus +50 XP perfect-day bonus.");
+  } else {
+    showOverlay("🎉", "DAY " + day.n + " CRUSHED", "+50 XP perfect-day bonus. " + (75 - day.n) + " days to go. See you tomorrow.");
+  }
+}
+
 function toggleTask(id) {
   const day = currentDay();
   if (!day || challengeComplete() && day.done.includes(id)) return;
-  const task = TASKS.find(t => t.id === id);
+  const task = taskById(id);
+  if (!task) return;
   const wasComplete = isDayComplete(day);
   const i = day.done.indexOf(id);
   if (i >= 0) { day.done.splice(i, 1); state.xp = Math.max(0, state.xp - task.xp); }
   else { day.done.push(id); state.xp += task.xp; }
 
-  if (!wasComplete && isDayComplete(day)) {
-    state.xp += 50;
-    state.bestStreak = Math.max(state.bestStreak, streak());
-    save();
-    const badge = BADGES.find(b => b.days === completedCount());
-    confetti();
-    if (challengeComplete()) {
-      showOverlay("👑", "75 HARD COMPLETE", "All 75 days. You did the whole thing, " + (state.name || "champ") + ". Unbreakable.");
-    } else if (badge) {
-      showOverlay(badge.icon, badge.name, "Badge unlocked — " + badge.detail + ". Plus +50 XP perfect-day bonus.");
-    } else {
-      showOverlay("🎉", "DAY " + day.n + " CRUSHED", "+50 XP perfect-day bonus. " + (75 - day.n) + " days to go. See you tomorrow.");
-    }
-  } else {
-    save();
+  if (!wasComplete && isDayComplete(day)) awardDayComplete(day);
+  else save();
+  render();
+}
+
+function addCustomTask(icon, label) {
+  const task = { id: "c" + Date.now(), label, icon: icon || "⭐️", xp: 15 };
+  state.customTasks.push(task);
+  const day = currentDay();
+  if (day && !challengeComplete()) {
+    if (!day.tasks) day.tasks = TASKS.map(t => t.id); // migrate pre-update day records
+    day.tasks.push(task.id);
   }
+  save();
+  render();
+}
+
+function removeCustomTask(id) {
+  const day = currentDay();
+  const wasComplete = day ? isDayComplete(day) : true;
+  state.customTasks = state.customTasks.filter(t => t.id !== id);
+  if (day) {
+    if (day.tasks) day.tasks = day.tasks.filter(t => t !== id);
+    day.done = day.done.filter(t => t !== id);
+  }
+  // Removing an unchecked task can complete the day.
+  if (day && !wasComplete && isDayComplete(day)) awardDayComplete(day);
+  else save();
   render();
 }
 
@@ -498,13 +554,15 @@ function render() {
   $("quote-text").textContent = "“" + q[0] + "”";
   $("quote-author").textContent = "— " + q[1];
   $("affirmation-text").textContent = AFFIRMATIONS[dayIndex(AFFIRMATIONS.length)];
-  $("ring-bar").style.strokeDashoffset = 97.4 * (1 - day.done.length / TASKS.length);
+  const dayTasks = tasksForDay(day);
+  const doneCount = dayTasks.filter(t => day.done.includes(t.id)).length;
+  $("ring-bar").style.strokeDashoffset = 97.4 * (1 - (dayTasks.length ? doneCount / dayTasks.length : 0));
 
-  $("task-list").innerHTML = TASKS.map(t => {
+  $("task-list").innerHTML = dayTasks.map(t => {
     const done = day.done.includes(t.id);
     return `<button class="task ${done ? "done" : ""}" data-task="${t.id}">
       <span class="t-icon">${t.icon}</span>
-      <span><span class="t-label">${t.label}</span><br><span class="t-xp">+${t.xp} XP</span></span>
+      <span><span class="t-label">${esc(t.label)}</span><br><span class="t-xp">+${t.xp} XP</span></span>
       <span class="t-box">${done ? "✔" : "○"}</span>
     </button>`;
   }).join("");
@@ -537,6 +595,15 @@ function render() {
 
   // Settings theme selection
   document.querySelectorAll("[data-set]").forEach(b => b.classList.toggle("selected", b.dataset.set === state.theme));
+
+  // Settings custom tasks
+  $("custom-task-list").innerHTML = state.customTasks.length
+    ? state.customTasks.map(t => `<div class="custom-task-row">
+        <span class="c-emoji">${t.icon}</span>
+        <span class="c-label">${esc(t.label)} <span class="muted" style="font-size:12px">+${t.xp} XP</span></span>
+        <button class="c-del" data-del="${t.id}" aria-label="Delete task">✕</button>
+      </div>`).join("")
+    : '<p class="muted" style="font-size:13px">No custom tasks yet.</p>';
 }
 
 // ---------- Overlay & confetti ----------
@@ -588,6 +655,21 @@ document.querySelectorAll("nav button").forEach(b => b.addEventListener("click",
 
 document.querySelectorAll("[data-set]").forEach(b => {
   b.addEventListener("click", () => { state.theme = b.dataset.set; save(); render(); });
+});
+
+$("add-task-btn").addEventListener("click", () => {
+  const label = $("new-task-label").value.trim();
+  if (!label) { $("new-task-label").focus(); return; }
+  addCustomTask($("new-task-emoji").value.trim(), label);
+  $("new-task-emoji").value = "";
+  $("new-task-label").value = "";
+});
+
+$("custom-task-list").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-del]");
+  if (btn && confirm("Delete this task? It will be removed from today's checklist too.")) {
+    removeCustomTask(btn.dataset.del);
+  }
 });
 
 $("restart-btn").addEventListener("click", () => {
