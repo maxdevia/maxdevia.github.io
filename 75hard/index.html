@@ -128,6 +128,16 @@
   .badge .b-name { font-weight: 800; font-size: 14px; margin-top: 8px; }
   .badge .b-detail { font-size: 11px; color: var(--text2); margin-top: 4px; }
 
+  /* Weight */
+  .weight-row { display: flex; gap: 8px; }
+  .weight-row input { flex: 1; min-width: 0; border: 1px solid transparent; border-radius: 10px; padding: 12px; background: var(--bg); color: var(--text); font-size: 15px; outline: none; }
+  .weight-row input:focus { border-color: var(--accent); }
+  .weight-headline { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .weight-headline .w-current { font-family: var(--title-font); font-weight: var(--title-weight); font-size: 24px; }
+  .weight-headline .muted { font-size: 13px; font-weight: 600; }
+  #weight-chart svg { display: block; width: 100%; height: auto; }
+  .chart-tip { position: absolute; transform: translate(-50%, 0); background: var(--text); color: var(--bg); font-size: 12px; font-weight: 600; padding: 5px 9px; border-radius: 8px; pointer-events: none; white-space: nowrap; z-index: 5; }
+
   /* Settings */
   .settings-row { display: flex; align-items: center; justify-content: space-between; }
   .custom-task-row { display: flex; align-items: center; gap: 10px; background: var(--bg); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
@@ -219,6 +229,14 @@
     <div class="label" style="color: var(--accent2)">♥ TODAY'S AFFIRMATION</div>
     <p class="affirmation" id="affirmation-text"></p>
   </div>
+  <div class="card">
+    <div class="label">⚖️ WEIGHT LOG</div>
+    <div class="weight-row">
+      <input id="weight-input" type="number" inputmode="decimal" step="0.1" min="50" max="700" placeholder="Today's weight (lbs)" aria-label="Today's weight in pounds">
+      <button class="add-btn" id="weight-save">Log</button>
+    </div>
+    <p class="muted" id="weight-note" style="font-size:12px; margin-top:8px" hidden></p>
+  </div>
   <div class="tasks-head">
     <span class="label">TODAY'S TASKS</span>
     <svg class="ring" viewBox="0 0 36 36">
@@ -235,6 +253,15 @@
   <div class="card">
     <div class="level-row"><span id="level-title">Level 1 · Rookie</span><span class="xp" id="level-xp">0 XP</span></div>
     <div class="bar-track"><div class="bar-fill" id="level-bar" style="width:0%"></div></div>
+  </div>
+  <div class="card" style="position:relative">
+    <div class="label">⚖️ WEIGHT TREND</div>
+    <div class="weight-headline" id="weight-headline" hidden>
+      <span class="w-current" id="weight-current"></span>
+      <span class="muted" id="weight-delta"></span>
+    </div>
+    <div id="weight-chart"></div>
+    <div class="chart-tip" id="chart-tip" hidden></div>
   </div>
   <div class="grid75" id="grid75"></div>
   <p class="attempt-note" id="attempt-note" hidden></p>
@@ -283,6 +310,9 @@
     </p>
   </div>
   <div class="label" style="color:var(--text2); margin-top:20px">CHALLENGE</div>
+  <div class="card settings-row" style="margin-bottom:10px">
+    <button id="fix-day-btn" style="background:none; color:var(--text); font-weight:600; font-size:15px">🩹 &nbsp;Set current day (fix a wrong reset)</button>
+  </div>
   <div class="card settings-row">
     <button class="danger" id="restart-btn">↺ &nbsp;Restart from Day 1</button>
   </div>
@@ -304,6 +334,7 @@
     <h2 id="ov-title"></h2>
     <p id="ov-sub"></p>
     <button class="btn-primary" id="ov-btn">Keep going</button>
+    <button id="ov-btn2" hidden style="background:none; color:var(--text2); font-size:14px; font-weight:600; margin-top:14px; text-decoration:underline">No</button>
   </div>
 </div>
 
@@ -397,10 +428,11 @@ function load() {
         s.tasks = TASKS.map(t => ({ ...t })).concat(Array.isArray(s.customTasks) ? s.customTasks : []);
         delete s.customTasks;
       }
+      if (!s.weights || typeof s.weights !== "object") s.weights = {};
       return s;
     }
   } catch (e) {}
-  return { onboarded: false, name: "", theme: "forge", days: [], xp: 0, bestStreak: 0, attempts: 0, tasks: TASKS.map(t => ({ ...t })) };
+  return { onboarded: false, name: "", theme: "forge", days: [], xp: 0, bestStreak: 0, attempts: 0, tasks: TASKS.map(t => ({ ...t })), weights: {} };
 }
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 
@@ -452,17 +484,48 @@ function restartAfterFailure() {
   state.attempts++;
   startChallenge();
 }
+let recoveryPending = false;
+
+function appendToday(last) {
+  state.days.push({ n: last.n + 1, date: todayStr(), done: [], tasks: allTasks().map(t => t.id) });
+  save();
+}
+
 function rollForward() {
-  if (!state.onboarded || state.days.length === 0 || challengeComplete()) return;
+  if (!state.onboarded || state.days.length === 0 || challengeComplete() || recoveryPending) return;
   const last = currentDay();
   const diff = daysBetween(last.date, todayStr());
   if (diff <= 0) return;
-  if (!isDayComplete(last) || diff > 1) {
-    restartAfterFailure();
-    showOverlay("💀", "BACK TO DAY 1", "A day was missed — that's the 75 Hard rule. Attempt #" + (state.attempts + 1) + " starts today. You're tougher now.");
+  if (isDayComplete(last) && diff === 1) {
+    appendToday(last);
+  } else if (!isDayComplete(last) && diff === 1) {
+    // Grace prompt: they may have done the tasks and just forgotten to check them.
+    recoveryPending = true;
+    const missing = tasksForDay(last).filter(t => !last.done.includes(t.id));
+    showOverlay("🤔", "WAIT — DID YOU FINISH?",
+      "Day " + last.n + " has " + missing.length + " unchecked task" + (missing.length === 1 ? "" : "s") +
+      " (" + missing.map(t => t.icon).join(" ") + "). If you really did everything and just forgot to log it, count the day. Be honest — that's the whole point.", {
+      primaryText: "I did every task — count it",
+      secondaryText: "I missed it — back to Day 1",
+      onPrimary: () => {
+        recoveryPending = false;
+        missing.forEach(t => { last.done.push(t.id); state.xp += t.xp; });
+        state.xp += 50;
+        state.bestStreak = Math.max(state.bestStreak, streak());
+        appendToday(last);
+        confetti();
+        render();
+      },
+      onSecondary: () => {
+        recoveryPending = false;
+        restartAfterFailure();
+        showOverlay("💀", "BACK TO DAY 1", "Respect for the honesty. Attempt #" + (state.attempts + 1) + " starts today. You're tougher now.");
+        render();
+      }
+    });
   } else {
-    state.days.push({ n: last.n + 1, date: todayStr(), done: [], tasks: allTasks().map(t => t.id) });
-    save();
+    restartAfterFailure();
+    showOverlay("💀", "BACK TO DAY 1", "More than a day was missed — that's the 75 Hard rule. Attempt #" + (state.attempts + 1) + " starts today. You're tougher now.");
   }
   render();
 }
@@ -536,6 +599,78 @@ function removeTask(id) {
   render();
 }
 
+// ---------- Weight ----------
+function logWeight(value) {
+  const v = Math.round(parseFloat(value) * 10) / 10;
+  if (!isFinite(v) || v < 50 || v > 700) return false;
+  state.weights[todayStr()] = v;
+  save();
+  return true;
+}
+
+function weightEntries() {
+  return Object.entries(state.weights)
+    .map(([date, lbs]) => ({ date, lbs }))
+    .sort((a, b) => a.date < b.date ? -1 : 1);
+}
+
+const fmtDate = (ds) => new Date(ds + "T12:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+function renderWeightChart() {
+  const entries = weightEntries();
+  const box = $("weight-chart");
+  const headline = $("weight-headline");
+  if (entries.length === 0) {
+    headline.hidden = true;
+    box.innerHTML = '<p class="muted" style="font-size:13px">Log your weight on the Today tab to see your trend here.</p>';
+    return;
+  }
+  const latest = entries[entries.length - 1], first = entries[0];
+  headline.hidden = false;
+  $("weight-current").textContent = latest.lbs.toFixed(1) + " lbs";
+  const delta = Math.round((latest.lbs - first.lbs) * 10) / 10;
+  $("weight-delta").textContent = entries.length < 2 ? "logged " + fmtDate(latest.date)
+    : (delta === 0 ? "no change" : (delta < 0 ? "▼ " + Math.abs(delta) : "▲ " + delta) + " lbs") + " since " + fmtDate(first.date);
+  if (entries.length < 2) {
+    box.innerHTML = '<p class="muted" style="font-size:13px">One entry logged — the trend line appears after your next weigh-in.</p>';
+    return;
+  }
+
+  // Layout
+  const W = 340, H = 150, padL = 34, padR = 12, padT = 14, padB = 22;
+  const t0 = new Date(first.date + "T12:00").getTime(), t1 = new Date(latest.date + "T12:00").getTime();
+  const lo = Math.min(...entries.map(e => e.lbs)), hi = Math.max(...entries.map(e => e.lbs));
+  const span = Math.max(hi - lo, 2), yLo = lo - span * 0.15, yHi = hi + span * 0.15;
+  const X = (e) => padL + (t1 === t0 ? 0 : (new Date(e.date + "T12:00").getTime() - t0) / (t1 - t0)) * (W - padL - padR);
+  const Y = (v) => padT + (1 - (v - yLo) / (yHi - yLo)) * (H - padT - padB);
+
+  // Recessive grid: 3 horizontal lines with muted value labels
+  let grid = "";
+  for (let g = 0; g < 3; g++) {
+    const v = yLo + (yHi - yLo) * (0.15 + g * 0.35);
+    const y = Y(v);
+    grid += `<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="currentColor" stroke-opacity="0.12" stroke-width="1"/>` +
+            `<text x="${padL - 5}" y="${y + 3}" text-anchor="end" font-size="8.5" fill="currentColor" fill-opacity="0.55">${Math.round(v)}</text>`;
+  }
+  const pts = entries.map(e => ({ x: X(e), y: Y(e.lbs), e }));
+  const path = pts.map((p, i) => (i ? "L" : "M") + p.x.toFixed(1) + " " + p.y.toFixed(1)).join(" ");
+  const dots = pts.map((p, i) =>
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="var(--accent)"/>` +
+    `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="11" fill="transparent" data-wi="${i}"/>`).join("");
+  // Selective direct labels: first and latest values in text ink, not series color
+  const labels =
+    `<text x="${pts[0].x.toFixed(1)}" y="${(pts[0].y - 7).toFixed(1)}" text-anchor="start" font-size="9" font-weight="700" fill="currentColor">${first.lbs.toFixed(1)}</text>` +
+    `<text x="${pts[pts.length - 1].x.toFixed(1)}" y="${(pts[pts.length - 1].y - 7).toFixed(1)}" text-anchor="end" font-size="9" font-weight="700" fill="currentColor">${latest.lbs.toFixed(1)}</text>` +
+    `<text x="${padL}" y="${H - 6}" font-size="8.5" fill="currentColor" fill-opacity="0.55">${fmtDate(first.date)}</text>` +
+    `<text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="8.5" fill="currentColor" fill-opacity="0.55">${fmtDate(latest.date)}</text>`;
+  box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="color:var(--text)">
+    ${grid}
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}${labels}
+  </svg>`;
+  box._pts = pts;
+}
+
 // ---------- UI ----------
 const $ = (id) => document.getElementById(id);
 let activeTab = "today";
@@ -586,7 +721,22 @@ function render() {
     </button>`;
   }).join("");
 
+  // Weight card (Today)
+  const todayW = state.weights[todayStr()];
+  const wNote = $("weight-note");
+  if (todayW !== undefined) {
+    $("weight-input").value = todayW;
+    $("weight-save").textContent = "Update";
+    const prev = weightEntries().filter(e => e.date !== todayStr()).pop();
+    wNote.hidden = false;
+    wNote.textContent = "Logged for today" + (prev ? " · " + (todayW === prev.lbs ? "same as" : todayW < prev.lbs ? "▼ " + (Math.round((prev.lbs - todayW) * 10) / 10) + " lbs from" : "▲ " + (Math.round((todayW - prev.lbs) * 10) / 10) + " lbs from") + " last entry (" + fmtDate(prev.date) + ")" : "") + ".";
+  } else {
+    $("weight-save").textContent = "Log";
+    wNote.hidden = true;
+  }
+
   // Progress
+  renderWeightChart();
   $("level-title").textContent = "Level " + lv.level + " · " + lv.title;
   $("level-xp").textContent = state.xp + " XP";
   $("level-bar").style.width = (lv.progress * 100).toFixed(1) + "%";
@@ -625,10 +775,16 @@ function render() {
 }
 
 // ---------- Overlay & confetti ----------
-function showOverlay(emoji, title, sub) {
+let ovActions = { primary: null, secondary: null };
+function showOverlay(emoji, title, sub, opts = {}) {
   $("ov-emoji").textContent = emoji;
   $("ov-title").textContent = title;
   $("ov-sub").textContent = sub;
+  $("ov-btn").textContent = opts.primaryText || "Keep going";
+  const b2 = $("ov-btn2");
+  if (opts.secondaryText) { b2.hidden = false; b2.textContent = opts.secondaryText; }
+  else b2.hidden = true;
+  ovActions = { primary: opts.onPrimary || null, secondary: opts.onSecondary || null };
   $("overlay").classList.add("visible");
 }
 function confetti() {
@@ -675,6 +831,29 @@ document.querySelectorAll("[data-set]").forEach(b => {
   b.addEventListener("click", () => { state.theme = b.dataset.set; save(); render(); });
 });
 
+$("weight-save").addEventListener("click", () => {
+  if (logWeight($("weight-input").value)) { $("weight-input").blur(); render(); }
+  else { $("weight-input").focus(); }
+});
+
+// Chart tooltip: tap or hover a point to see date + value
+$("weight-chart").addEventListener("pointerdown", (e) => {
+  const hit = e.target.closest("[data-wi]");
+  const tip = $("chart-tip");
+  if (!hit) { tip.hidden = true; return; }
+  const p = $("weight-chart")._pts[Number(hit.dataset.wi)];
+  tip.textContent = fmtDate(p.e.date) + " · " + p.e.lbs.toFixed(1) + " lbs";
+  const chartRect = $("weight-chart").getBoundingClientRect();
+  const cardRect = $("weight-chart").parentElement.getBoundingClientRect();
+  const svgRect = $("weight-chart").querySelector("svg").getBoundingClientRect();
+  const scale = svgRect.width / 340;
+  tip.style.left = (svgRect.left - cardRect.left + p.x * scale) + "px";
+  tip.style.top = (chartRect.top - cardRect.top + p.y * scale - 34) + "px";
+  tip.hidden = false;
+  clearTimeout(tip._t);
+  tip._t = setTimeout(() => { tip.hidden = true; }, 2500);
+});
+
 let editingTaskId = null;
 function resetTaskForm() {
   editingTaskId = null;
@@ -715,6 +894,24 @@ $("task-manage-list").addEventListener("click", (e) => {
   }
 });
 
+$("fix-day-btn").addEventListener("click", () => {
+  const v = parseInt(prompt("Which day of the challenge should today be? (1–75)\n\nEarlier days will be marked complete. Today's checkmarks are kept."), 10);
+  if (!v || v < 1 || v > 75) return;
+  const ids = allTasks().map(t => t.id);
+  const today = currentDay();
+  const days = [];
+  for (let i = 1; i < v; i++) {
+    const d = new Date(Date.now() - (v - i) * 86400000);
+    days.push({ n: i, date: todayStr(d), done: ids.slice(), tasks: ids.slice() });
+  }
+  days.push({ n: v, date: todayStr(), done: today ? today.done.slice() : [], tasks: ids.slice() });
+  state.days = days;
+  state.bestStreak = Math.max(state.bestStreak, v - 1);
+  save();
+  render();
+  switchTab("today");
+});
+
 $("restart-btn").addEventListener("click", () => {
   if (confirm("Restart the challenge? Your day progress resets to Day 1. XP and attempt history are kept.")) {
     restartAfterFailure();
@@ -723,7 +920,16 @@ $("restart-btn").addEventListener("click", () => {
   }
 });
 
-$("ov-btn").addEventListener("click", () => $("overlay").classList.remove("visible"));
+$("ov-btn").addEventListener("click", () => {
+  const a = ovActions.primary; ovActions = { primary: null, secondary: null };
+  $("overlay").classList.remove("visible");
+  if (a) a();
+});
+$("ov-btn2").addEventListener("click", () => {
+  const a = ovActions.secondary; ovActions = { primary: null, secondary: null };
+  $("overlay").classList.remove("visible");
+  if (a) a();
+});
 
 document.addEventListener("visibilitychange", () => { if (!document.hidden) rollForward(); });
 
